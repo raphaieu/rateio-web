@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="text-center py-10 text-muted-foreground">
-    <p>Extras (Service Fee, Discount) coming soon.</p>
+    <p>{{ t('extras.comingSoon') }}</p>
   </div>
 </template>

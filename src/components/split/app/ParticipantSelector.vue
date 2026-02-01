@@ -3,18 +3,20 @@ import { computed } from 'vue'
 import { useSplitStore } from '@/stores/splitStore'
 import { Badge } from '@/components/ui/badge'
 import { Check } from 'lucide-vue-next'
+import { useApi } from '@/api/useApi'
 
 const props = defineProps<{
     itemId: string
 }>()
 
+const api = useApi()
 const store = useSplitStore()
 
 const consumers = computed(() => store.getItemConsumers(props.itemId))
-const draft = computed(() => store.currentDraft)
+const draft = computed(() => store.draft)
 
-const toggle = (participantId: string) => {
-    store.toggleShare(props.itemId, participantId)
+const toggle = async (participantId: string) => {
+    await store.toggleShare(api, props.itemId, participantId)
 }
 
 const isSelected = (id: string) => consumers.value.includes(id)

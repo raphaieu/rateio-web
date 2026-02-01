@@ -1,0 +1,45 @@
+{
+    "dashboard": {
+        "mySplits": "Meus Rateios",
+        "noSplits": "Nenhum rateio ainda.",
+        "createSplit": "Crie um novo rateio para começar.",
+        "newSplit": "Novo Rateio"
+    },
+    "split": {
+        "tabs": {
+            "participants": "Pessoas",
+            "items": "Itens",
+            "extras": "Extras",
+            "review": "Revisão"
+        },
+        "namePlaceholder": "Nome do Rateio"
+    },
+    "participants": {
+        "add": "Adicionar",
+        "placeholder": "Nome (ex: João)"
+    },
+    "items": {
+        "add": "Adicionar Item",
+        "adding": "Adicionando...",
+        "namePlaceholder": "Item (ex: Pizza)",
+        "whoConsumed": "Quem consumiu?",
+        "all": "Todos",
+        "none": "Ninguém",
+        "noItems": "Nenhum item adicionado ainda."
+    },
+    "review": {
+        "summary": "Resumo",
+        "total": "Total",
+        "fixErrors": "Por favor, corrija o seguinte:",
+        "paymentLink": "Link de Pagamento (Em breve)",
+        "generateLink": "Gerar Link de Pagamento",
+        "errors": {
+            "minParticipants": "Adicione pelo menos 1 participante.",
+            "minItems": "Adicione pelo menos 1 item.",
+            "orphanedItems": "Atribua consumidores para: {items}"
+        }
+    },
+    "extras": {
+        "comingSoon": "Extras (Taxa de Serviço, Desconto) em breve."
+    }
+}

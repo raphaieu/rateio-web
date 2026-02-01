@@ -1,0 +1,45 @@
+{
+    "dashboard": {
+        "mySplits": "My Splits",
+        "noSplits": "No splits yet.",
+        "createSplit": "Create a new split to get started.",
+        "newSplit": "New Split"
+    },
+    "split": {
+        "tabs": {
+            "participants": "People",
+            "items": "Items",
+            "extras": "Extras",
+            "review": "Review"
+        },
+        "namePlaceholder": "Split Name"
+    },
+    "participants": {
+        "add": "Add",
+        "placeholder": "Name (e.g. Bob)"
+    },
+    "items": {
+        "add": "Add Item",
+        "adding": "Adding...",
+        "namePlaceholder": "Item (e.g. Pizza)",
+        "whoConsumed": "Who consumed?",
+        "all": "All",
+        "none": "None",
+        "noItems": "No items added yet."
+    },
+    "review": {
+        "summary": "Summary",
+        "total": "Total",
+        "fixErrors": "Please fix the following:",
+        "paymentLink": "Payment Link (Soon)",
+        "generateLink": "Generate Payment Link",
+        "errors": {
+            "minParticipants": "Add at least 1 participant.",
+            "minItems": "Add at least 1 item.",
+            "orphanedItems": "Assign consumers to: {items}"
+        }
+    },
+    "extras": {
+        "comingSoon": "Extras (Service Fee, Discount) coming soon."
+    }
+}

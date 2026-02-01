@@ -9,22 +9,41 @@ import ItemsTab from '@/components/split/app/ItemsTab.vue'
 import ParticipantsTab from '@/components/split/app/ParticipantsTab.vue'
 import ReviewTab from '@/components/split/app/ReviewTab.vue'
 import ExtrasTab from '@/components/split/app/ExtrasTab.vue'
+import { useApi } from '@/api/useApi'
+import { useDebounceFn } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const store = useSplitStore()
+const api = useApi()
 
 const splitId = route.params.id as string
 const activeTab = ref('items')
 
-onMounted(() => {
-    const exists = store.loadDraft(splitId)
-    if (!exists) {
+onMounted(async () => {
+    if (!splitId) {
+        router.push('/app')
+        return
+    }
+    await store.fetchSplit(api, splitId)
+    if (!store.draft) {
+        // Handle 404
         router.push('/app')
     }
 })
 
-const currentDraft = computed(() => store.currentDraft)
+const currentDraft = computed(() => store.draft)
+
+const updateName = useDebounceFn(async (newName: string) => {
+    await store.updateSplit(api, { name: newName })
+}, 1000)
+
+const onNameInput = (e: Event) => {
+    const target = e.target as HTMLInputElement
+    updateName(target.value)
+}
 
 </script>
 
@@ -36,19 +55,20 @@ const currentDraft = computed(() => store.currentDraft)
         </Button>
         <div class="flex-1">
              <input 
-                v-model="currentDraft.name" 
+                v-model="currentDraft.name"
+                @input="onNameInput"
                 class="bg-transparent font-bold text-lg w-full focus:outline-none"
-                placeholder="Split Name"
-            />
+                :placeholder="t('split.namePlaceholder')"
+             />
         </div>
      </div>
 
      <Tabs v-model="activeTab" default-value="items" class="flex-1 flex flex-col overflow-hidden">
         <TabsList class="grid w-full grid-cols-4 rounded-none h-12">
-            <TabsTrigger value="participants">People</TabsTrigger>
-            <TabsTrigger value="items">Items</TabsTrigger>
-            <TabsTrigger value="extras">Extras</TabsTrigger>
-            <TabsTrigger value="review">Review</TabsTrigger>
+            <TabsTrigger value="participants">{{ t('split.tabs.participants') }}</TabsTrigger>
+            <TabsTrigger value="items">{{ t('split.tabs.items') }}</TabsTrigger>
+            <TabsTrigger value="extras">{{ t('split.tabs.extras') }}</TabsTrigger>
+            <TabsTrigger value="review">{{ t('split.tabs.review') }}</TabsTrigger>
         </TabsList>
         
         <div class="flex-1 overflow-y-auto p-4 pb-20">

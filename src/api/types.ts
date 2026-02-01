@@ -7,6 +7,7 @@ export type SplitDraft = {
     shares: Share[]
     extras: Extra[]
     createdAt: string // ISO
+    status: 'OPEN' | 'PAID'
 }
 
 export type Participant = {

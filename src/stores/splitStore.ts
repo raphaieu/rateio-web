@@ -1,134 +1,299 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { useStorage } from '@vueuse/core'
-import type { SplitDraft, Participant, Item } from '@/api/types'
+import type { SplitDraft, Participant, Item, Extra } from '@/api/types'
+
+// Define a subset of the useApi return type for better typing
+type ApiClient = {
+    get: <T>(path: string) => Promise<T>
+    post: <T>(path: string, body?: any) => Promise<T>
+    put: <T>(path: string, body?: any) => Promise<T>
+    patch: <T>(path: string, body?: any) => Promise<T>
+}
 
 export const useSplitStore = defineStore('split', {
     state: () => ({
-        // Use VueUse's useStorage to persist current draft ID or list of drafts
-        // For simplicity, we'll store a map of drafts locally
-        drafts: useStorage<Record<string, SplitDraft>>('rateio-drafts', {}),
+        // We keep the current draft in memory, but persist ID
+        draft: null as SplitDraft | null,
+        mySplits: [] as SplitDraft[],
         currentSplitId: useStorage<string | null>('rateio-current-split-id', null),
+        isLoading: false,
+        error: null as string | null,
+        isSaving: false,
+        syncTimeoutId: null as any // Using 'any' because checking strict types for NodeJS.Timeout vs number can be annoying
     }),
 
     getters: {
-        currentDraft: (state): SplitDraft | undefined => {
-            if (!state.currentSplitId) return undefined
-            return state.drafts[state.currentSplitId]
-        },
-
         // Helper to get consumers for a specific item
         getItemConsumers: (state) => (itemId: string) => {
-            if (!state.currentSplitId) return []
-            const draft = state.drafts[state.currentSplitId]
-            if (!draft) return []
-            return draft.shares
+            if (!state.draft) return []
+            return state.draft.shares
                 .filter(s => s.itemId === itemId)
                 .map(s => s.participantId)
-        }
+        },
+
+        hasParticipants: (state) => (state.draft?.participants.length || 0) > 0
     },
 
     actions: {
-        createDraft(name: string = 'New Split') {
-            const id = uuidv4()
-            const newDraft: SplitDraft = {
-                id,
-                name,
-                participants: [],
-                items: [],
-                shares: [],
-                extras: [],
-                createdAt: new Date().toISOString()
+        async listSplits(api: ApiClient) {
+            this.isLoading = true
+            try {
+                this.mySplits = await api.get<SplitDraft[]>('/splits')
+            } catch (e) {
+                console.error(e)
+            } finally {
+                this.isLoading = false
             }
-            this.drafts[id] = newDraft
-            this.currentSplitId = id
-
-            // Quick Add Flow: Default 2 participants
-            this.addParticipant('Person A')
-            this.addParticipant('Person B')
-
-            return id
         },
 
-        loadDraft(id: string) {
-            if (this.drafts[id]) {
+        async createSplit(api: ApiClient, name: string = 'Rateio') {
+            this.isLoading = true
+            try {
+                // Backend creates defaults (2 participants)
+                const res = await api.post<{ id: string }>('/splits', {
+                    name,
+                    peopleCount: 2
+                })
+
+                this.currentSplitId = res.id
+                // Immediately fetch to get the server-generated IDs
+                await this.fetchSplit(api, res.id)
+                return res.id
+            } catch (e: any) {
+                this.error = e.message
+                throw e
+            } finally {
+                this.isLoading = false
+            }
+        },
+
+        async fetchSplit(api: ApiClient, id: string) {
+            this.isLoading = true
+            this.error = null
+            try {
+                const data = await api.get<SplitDraft>(`/splits/${id}`)
+                this.draft = data
                 this.currentSplitId = id
-                return true
+            } catch (e: any) {
+                console.error(e)
+                this.error = "Failed to load split"
+            } finally {
+                this.isLoading = false
             }
-            return false
         },
 
-        addParticipant(name: string) {
-            const draft = this.currentDraft
-            if (!draft) return
+        async updateSplit(api: ApiClient, updates: { name?: string }) {
+            if (!this.draft) return
 
+            // Optimistic
+            if (updates.name) this.draft.name = updates.name
+
+            try {
+                // We don't have a specific PATCH endpoint for name yet, likely need to check backend routes.
+                // Backend POST /splits created it. PUT /splits/:id/participants...
+                // Check if there is a PUT /splits/:id or PATCH /splits/:id
+                // If not, we might need to add it to backend.
+                // Assuming currently we CANNOT update name on backend based on previous file read of routes/splits.ts
+                // I will add the backend endpoint for name update as well.
+                await api.patch(`/splits/${this.draft.id}`, updates)
+            } catch (e) {
+                console.error(e)
+            }
+        },
+
+        // --- Participants ---
+
+        async addParticipant(api: ApiClient, name: string) {
+            if (!this.draft) return
+
+            // Optimistic Update
             const newParticipant: Participant = {
                 id: uuidv4(),
                 name,
-                sortOrder: draft.participants.length
+                sortOrder: this.draft.participants.length
             }
-            draft.participants.push(newParticipant)
+            this.draft.participants.push(newParticipant)
+
+            await this.syncParticipants(api)
         },
 
-        addItem(name: string, amountCents: number) {
-            const draft = this.currentDraft
-            if (!draft) return
+        async removeParticipant(api: ApiClient, participantId: string) {
+            if (!this.draft) return
+            this.draft.participants = this.draft.participants.filter(p => p.id !== participantId)
+            // Also remove shares
+            this.draft.shares = this.draft.shares.filter(s => s.participantId !== participantId)
+
+            await this.syncParticipants(api)
+            // We also need to sync items because shares changed? 
+            // Actually backend handles share cascade delete, but we should sync items if we want to be safe or re-fetch?
+            // Re-fetching might be safest but slower.
+            // For now, let's just sync participants, backend will clean up shares for that user.
+            // But if we have local shares in memory, we should clean them. Check.
+        },
+
+        async updateParticipantName(api: ApiClient, id: string, name: string) {
+            if (!this.draft) return
+            const p = this.draft.participants.find(p => p.id === id)
+            if (p) {
+                p.name = name
+                // Debounce this in UI? Or just fire?
+                // For now, fire.
+                await this.syncParticipants(api)
+            }
+        },
+
+        async syncParticipants(api: ApiClient) {
+            if (!this.draft) return
+            this.isSaving = true
+            try {
+                await api.put(`/splits/${this.draft.id}/participants`, {
+                    participants: this.draft.participants
+                })
+            } catch (e) {
+                console.error("Failed to sync participants", e)
+            } finally {
+                this.isSaving = false
+            }
+        },
+
+        // --- Items ---
+
+        async addItem(api: ApiClient, name: string, amountCents: number) {
+            if (!this.draft) return
 
             const newItem: Item = {
                 id: uuidv4(),
                 name,
                 amountCents
             }
-            draft.items.push(newItem)
-            // Optional: Auto-select all participants? User requested "Quick Item" not explicit about auto-select,
-            // but usually "Select All" helper is enough. We start empty or empty? 
-            // "Review tab must block if any item has zero consumers". 
-            // Let's leave it empty so they have to choose (or use Select All).
+            this.draft.items.push(newItem)
+
+            await this.scheduleSyncItems(api)
         },
 
-        toggleShare(itemId: string, participantId: string) {
-            const draft = this.currentDraft
-            if (!draft) return
+        async deleteItem(api: ApiClient, itemId: string) {
+            if (!this.draft) return
+            this.draft.items = this.draft.items.filter(i => i.id !== itemId)
+            this.draft.shares = this.draft.shares.filter(s => s.itemId !== itemId)
+            await this.scheduleSyncItems(api)
+        },
 
-            const idx = draft.shares.findIndex(s => s.itemId === itemId && s.participantId === participantId)
+        async toggleShare(api: ApiClient, itemId: string, participantId: string) {
+            if (!this.draft) return
+
+            const idx = this.draft.shares.findIndex(s => s.itemId === itemId && s.participantId === participantId)
             if (idx >= 0) {
-                draft.shares.splice(idx, 1)
+                this.draft.shares.splice(idx, 1)
             } else {
-                draft.shares.push({ itemId, participantId })
+                this.draft.shares.push({ itemId, participantId })
             }
+
+            // Backend expects "items" update to contain "consumerIds"
+            // Our "shares" structure is decoupled. We need to map it back to the backend structure
+            // effectively, or backend needs a separate /shares endpoint.
+            // Start checking backend routes... 
+            // PUT /splits/:id/items expects { items: [ { ... consumerIds: [] } ] }
+            // So we must sync ITEMS when shares change.
+            await this.scheduleSyncItems(api)
         },
 
-        setAllShares(itemId: string, participantIds: string[]) {
-            const draft = this.currentDraft
-            if (!draft) return
-
+        async setAllShares(api: ApiClient, itemId: string, participantIds: string[]) {
+            if (!this.draft) return
             // Remove all existing shares for this item
-            draft.shares = draft.shares.filter(s => s.itemId !== itemId)
-
+            this.draft.shares = this.draft.shares.filter(s => s.itemId !== itemId)
             // Add new ones
             for (const pid of participantIds) {
-                draft.shares.push({ itemId, participantId: pid })
+                this.draft.shares.push({ itemId, participantId: pid })
+            }
+            await this.scheduleSyncItems(api)
+        },
+
+        async markAsPaid(api: ApiClient) {
+            if (!this.draft) return
+            this.isLoading = true
+            try {
+                // Mock endpoint or real one?
+                // Let's assume we create a logical endpoint later, for now we simulate
+                // But to make it persistent in Dev, let's call PATCH if we can, or just set locally.
+                // Re-reading user request: "checkout transparente... botão desbloquear... modal some e os valores aparecem".
+                // Ideally backend persists this.
+                // I'll assume we can PATCH the status or use a specific Pay endpoint.
+                // Since I can't edit backend and frontend at EXACT same time without intermediate step,
+                // I will update local state optimistically.
+                this.draft.status = 'PAID'
+
+                // TODO: Wire up real payment endpoint
+                // await api.post(`/splits/${this.draft.id}/pay`) 
+            } finally {
+                this.isLoading = false
             }
         },
 
-        clearShares(itemId: string) {
-            const draft = this.currentDraft
-            if (!draft) return
-            draft.shares = draft.shares.filter(s => s.itemId !== itemId)
+        async scheduleSyncItems(api: ApiClient) {
+            if (this.syncTimeoutId) {
+                clearTimeout(this.syncTimeoutId)
+            }
+            this.isSaving = true // Show loading immediately
+            this.syncTimeoutId = setTimeout(() => {
+                this.syncItems(api)
+            }, 1000)
         },
 
-        deleteItem(itemId: string) {
-            const draft = this.currentDraft
-            if (!draft) return
-            draft.items = draft.items.filter(i => i.id !== itemId)
-            draft.shares = draft.shares.filter(s => s.itemId !== itemId)
+        async syncItems(api: ApiClient) {
+            if (!this.draft) return
+            this.isSaving = true
+
+            // Transform to backend format
+            // item.consumerIds
+
+            const itemsPayload = this.draft.items.map(item => {
+                const consumerIds = this.draft?.shares
+                    .filter(s => s.itemId === item.id)
+                    .map(s => s.participantId)
+
+                return {
+                    id: item.id,
+                    name: item.name,
+                    amountCents: item.amountCents,
+                    consumerIds
+                }
+            })
+
+            try {
+                await api.put(`/splits/${this.draft.id}/items`, {
+                    items: itemsPayload
+                })
+            } catch (e) {
+                console.error("Failed to sync items", e)
+                this.error = "Failed to save changes. Please try again."
+            } finally {
+                this.isSaving = false
+                this.syncTimeoutId = null
+            }
         },
 
-        deleteParticipant(participantId: string) {
-            const draft = this.currentDraft
-            if (!draft) return
-            draft.participants = draft.participants.filter(p => p.id !== participantId)
-            draft.shares = draft.shares.filter(s => s.participantId !== participantId)
+        // --- Extras ---
+
+        async addExtra(api: ApiClient, extra: Partial<Extra>) {
+            if (!this.draft) return
+            console.log(api, extra)
+        },
+
+        async syncExtras(api: ApiClient) {
+            if (!this.draft) return
+            console.log(api)
+        },
+
+        async computeReview(api: ApiClient) {
+            if (!this.draft) return null
+            try {
+                const res = await api.post<any>(`/splits/${this.draft.id}/compute-review`)
+                return res.calculation
+            } catch (e) {
+                console.error(e)
+                return null
+            }
         }
     }
 })

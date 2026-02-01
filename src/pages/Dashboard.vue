@@ -1,29 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSplitStore } from '@/stores/splitStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardTitle, CardContent, CardHeader } from '@/components/ui/card'
 import { UserButton } from '@clerk/vue'
 import { Plus } from 'lucide-vue-next'
-import { onMounted } from 'vue'
 import { useApi } from '@/api/useApi'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const api = useApi()
 
 const store = useSplitStore()
 const router = useRouter()
-// const { user } = useUser()
 
-const myDrafts = computed(() => {
-  return Object.values(store.drafts).sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
-})
+const myDrafts = computed(() => store.mySplits)
 
-const createNewSplit = () => {
-    const id = store.createDraft()
-    router.push(`/app/splits/${id}`)
+const createNewSplit = async () => {
+    try {
+        const id = await store.createSplit(api)
+        if (id) {
+            router.push(`/app/splits/${id}`)
+        }
+    } catch (e) {
+        console.error(e)
+    }
 }
 
 const openDraft = (id: string) => {
@@ -31,19 +33,18 @@ const openDraft = (id: string) => {
 }
 
 onMounted(async () => {
-  const me = await api.get('/me')
-  console.log('me', me)
-
-  const pricing = await api.get('/pricing/current')
-  console.log('pricing', pricing)
+  try {
+      await store.listSplits(api)
+  } catch (e) {
+      console.error(e)
+  }
 })
-
 </script>
 
 <template>
   <div class="min-h-screen bg-background p-4">
     <header class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">My Splits</h1>
+      <h1 class="text-2xl font-bold">{{ t('dashboard.mySplits') }}</h1>
       <UserButton />
     </header>
 
@@ -58,7 +59,7 @@ onMounted(async () => {
             <CardTitle class="flex justify-between items-center text-lg">
                 {{ draft.name }}
                 <span class="text-xs text-muted-foreground font-normal">
-                    {{ new Date(draft.createdAt).toLocaleDateString() }}
+                    {{ new Date(Number(draft.createdAt) * 1000).toLocaleDateString() }}
                 </span>
             </CardTitle>
         </CardHeader>
@@ -79,8 +80,8 @@ onMounted(async () => {
     </div>
     
     <div v-if="myDrafts.length === 0" class="text-center text-muted-foreground mt-10">
-        <p>No splits yet.</p>
-        <p class="text-sm">Tap + to start splitting.</p>
+        <p>{{ t('dashboard.noSplits') }}</p>
+        <p class="text-sm">{{ t('dashboard.createSplit') }}</p>
     </div>
   </div>
 </template>

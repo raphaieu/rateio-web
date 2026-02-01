@@ -1,8 +1,10 @@
 import { useAuth } from "@clerk/vue";
 import { apiFetch } from "./client";
+import { useUiStore } from "@/stores/uiStore";
 
 export function useApi() {
     const { getToken, isSignedIn } = useAuth();
+    const ui = useUiStore();
 
     async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
         if (!isSignedIn.value) {
@@ -11,12 +13,17 @@ export function useApi() {
             throw { status: 401, message: "Not signed in" };
         }
 
-        const token = await getToken.value();
-        const headers = new Headers(init.headers || {});
-        headers.set("Authorization", `Bearer ${token}`);
-        if (init.body) headers.set("Content-Type", "application/json");
+        ui.startRequest();
+        try {
+            const token = await getToken.value();
+            const headers = new Headers(init.headers || {});
+            headers.set("Authorization", `Bearer ${token}`);
+            if (init.body) headers.set("Content-Type", "application/json");
 
-        return apiFetch<T>(path, { ...init, headers });
+            return await apiFetch<T>(path, { ...init, headers });
+        } finally {
+            ui.endRequest();
+        }
     }
 
     return {
