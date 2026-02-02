@@ -1,18 +1,49 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useSplitStore } from '@/stores/splitStore'
 import { Card, CardContent } from '@/components/ui/card'
-import { AlertCircle, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { AlertCircle, Loader2, Copy } from 'lucide-vue-next'
 import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
+import { useClipboard, useIntervalFn } from '@vueuse/core'
 
 const { t } = useI18n()
 const api = useApi()
 const store = useSplitStore()
+const { copy } = useClipboard()
+
 const draft = computed(() => store.draft)
 const calculation = ref<any>(null)
 const isLoading = ref(false)
+const showPaymentModal = ref(false)
+const paymentData = ref<{ qrCode?: string, copyPaste?: string, paymentId?: string } | null>(null)
+
+// Polling for payment status
+const { pause, resume, isActive } = useIntervalFn(async () => {
+    if (!draft.value?.id) return
+    
+    // Silent fetch
+    await store.fetchSplit(api, draft.value.id)
+    
+    if (store.draft?.status === 'PAID') {
+        pause()
+        showPaymentModal.value = false
+        // Refresh calculation if needed (though values are same, UI unblurs)
+        fetchCalculation()
+    }
+}, 3000, { immediate: false })
+
+// Stop polling when modal closes
+watch(showPaymentModal, (open) => {
+    if (!open) {
+        pause()
+    } else if (open && !isPaid.value) {
+        resume()
+    }
+})
 
 const errors = computed(() => {
     const errs: string[] = []
@@ -21,7 +52,6 @@ const errors = computed(() => {
     if (draft.value.participants.length < 1) errs.push(t('review.errors.minParticipants'))
     if (draft.value.items.length < 1) errs.push(t('review.errors.minItems'))
     
-    // Check for items with 0 consumers
     const orphanedItems = draft.value.items.filter(item => {
         const hasConsumer = draft.value!.shares.some(s => s.itemId === item.id)
         return !hasConsumer
@@ -63,8 +93,6 @@ const formatMoney = (cents: number) => {
 }
 
 const isPaid = computed(() => {
-    // Check if status is PAID in draft
-    // The backend returns current status.
     return draft.value?.status === 'PAID'
 })
 
@@ -74,28 +102,52 @@ const feeCents = computed(() => {
 
 const handleAction = async () => {
     if (isPaid.value) {
-        // Share Result logic (WIP)
          if (navigator.share) {
             navigator.share({
                 title: 'Rateio Justo',
                 text: `Ficou ${formatMoney(totalBill.value)} no total. Veja sua parte:`,
-                url: window.location.href
+                url: window.location.href // NOTE: Ideally should be public slug URL
             }).catch(console.error)
         } else {
-            alert("Compartilhar (Link copiado!)")
+            copy(window.location.href)
+            alert("Link copiado!")
         }
     } else {
-        // Unlock Logic - Mock Payment Flow
-        if (confirm(`Pagar taxa de ${formatMoney(feeCents.value)} para desbloquear?`)) {
-            // Call backend to pay (mock)
-            // For now, since we don't have a pay endpoint, we can't switch it on server.
-            // But we can update local store or implement the endpoint.
-            // Let's implement a 'force pay' on store for dev or endpoint.
-             await store.markAsPaid(api)
-             fetchCalculation() // Refresh
+        // Start Payment Flow
+        try {
+            isLoading.value = true
+            const res = await store.paySplit(api) // Default topup 0 for now
+            
+            if (res.status === 'PAID') {
+                // Already paid (maybe wallet covered it)
+                fetchCalculation()
+                return
+            }
+            
+            if (res.status === 'PENDING') {
+                paymentData.value = {
+                    qrCode: res.qrCode,
+                    copyPaste: res.copyPaste,
+                    paymentId: res.paymentId
+                }
+                showPaymentModal.value = true
+                resume() // Start listener
+            }
+        } catch (e) {
+            alert("Erro ao iniciar pagamento. Tente novamente.")
+        } finally {
+            isLoading.value = false
         }
     }
 }
+
+const copyPixCode = () => {
+    if (paymentData.value?.copyPaste) {
+        copy(paymentData.value.copyPaste)
+        // Toast would be better here
+    }
+}
+
 </script>
 
 <template>
@@ -114,14 +166,14 @@ const handleAction = async () => {
         <Loader2 class="w-8 h-8 animate-spin text-muted-foreground" />
      </div>
 
-     <div v-else class="space-y-4">
+      <div v-else class="space-y-4">
         <h2 class="text-xl font-bold">{{ t('review.summary') }}</h2>
         
         <Card>
             <CardContent class="p-4 space-y-2">
                 <div v-for="s in summary" :key="s.name" class="flex justify-between items-center">
                     <span>{{ s.name }}</span>
-                    <span v-if="isPaid" class="font-medium">{{ formatMoney(s.total || 0) }}</span>
+                    <span v-if="isPaid" class="font-medium text-green-600">{{ formatMoney(s.total || 0) }}</span>
                     <span v-else class="font-medium text-muted-foreground blur-sm select-none">R$ ??.??</span>
                 </div>
                 <!-- Fee Row (Only if Locked) -->
@@ -129,6 +181,7 @@ const handleAction = async () => {
                     <span>Taxa de Serviço</span>
                     <span>{{ formatMoney(feeCents) }}</span>
                 </div>
+                <!-- Total is always visible -->
                 <div class="flex justify-between font-bold text-lg border-t pt-2 mt-2">
                     <span>{{ t('review.total') }}</span>
                     <span>{{ formatMoney(totalBill) }}</span>
@@ -141,9 +194,63 @@ const handleAction = async () => {
             size="lg" 
             :variant="isPaid ? 'secondary' : 'default'"
             @click="handleAction"
+            :disabled="isLoading"
         >
+            <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
             {{ isPaid ? 'Compartilhar Resultado' : `Desbloquear Valores (${formatMoney(feeCents)})` }}
         </Button>
      </div>
+
+     <!-- Payment Modal -->
+     <Dialog :open="showPaymentModal" @update:open="showPaymentModal = $event">
+        <DialogContent class="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Pagamento via PIX</DialogTitle>
+                <DialogDescription>
+                    Escaneie o QR Code ou copie a chave PIX para desbloquear o rateio.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div class="flex flex-col items-center justify-center space-y-4 py-4" v-if="paymentData">
+                <div class="border-2 border-primary/20 rounded-lg p-2 bg-white">
+                    <img v-if="paymentData.qrCode" 
+                         :src="`data:image/png;base64,${paymentData.qrCode}`" 
+                         alt="QR Code PIX" 
+                         class="w-48 h-48 object-contain"
+                    />
+                    <div v-else class="w-48 h-48 flex items-center justify-center bg-gray-100 text-xs text-muted-foreground">
+                        QR Code Indisponível (Mock)
+                    </div>
+                </div>
+
+                <div class="w-full relative">
+                    <Input 
+                        readOnly 
+                        :value="paymentData.copyPaste || 'Chave PIX indisponível'" 
+                        class="pr-10 text-xs font-mono"
+                    />
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        class="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-primary"
+                        @click="copyPixCode"
+                    >
+                        <Copy class="w-4 h-4" />
+                    </Button>
+                </div>
+
+                 <div class="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                    <Loader2 class="w-3 h-3 animate-spin" />
+                    Aguardando pagamento...
+                </div>
+            </div>
+            
+            <DialogFooter class="sm:justify-start">
+                <Button type="button" variant="secondary" @click="showPaymentModal = false">
+                    Fechar
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+     </Dialog>
   </div>
 </template>

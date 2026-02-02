@@ -209,22 +209,28 @@ export const useSplitStore = defineStore('split', {
             await this.scheduleSyncItems(api)
         },
 
-        async markAsPaid(api: ApiClient) {
-            if (!this.draft) return
+        async paySplit(api: ApiClient, topupCents: number = 0) {
+            if (!this.draft) throw new Error("No draft")
             this.isLoading = true
             try {
-                // Mock endpoint or real one?
-                // Let's assume we create a logical endpoint later, for now we simulate
-                // But to make it persistent in Dev, let's call PATCH if we can, or just set locally.
-                // Re-reading user request: "checkout transparente... botão desbloquear... modal some e os valores aparecem".
-                // Ideally backend persists this.
-                // I'll assume we can PATCH the status or use a specific Pay endpoint.
-                // Since I can't edit backend and frontend at EXACT same time without intermediate step,
-                // I will update local state optimistically.
-                this.draft.status = 'PAID'
+                const res = await api.post<{
+                    status: 'PAID' | 'PENDING',
+                    qrCode?: string,
+                    copyPaste?: string,
+                    paymentId?: string
+                }>(`/splits/${this.draft.id}/pay`, {
+                    topupCents,
+                    payWithWallet: true // Always try wallet first per specs
+                })
 
-                // TODO: Wire up real payment endpoint
-                // await api.post(`/splits/${this.draft.id}/pay`) 
+                if (res.status === 'PAID') {
+                    this.draft.status = 'PAID'
+                }
+
+                return res
+            } catch (e: any) {
+                console.error("Payment error", e)
+                throw e
             } finally {
                 this.isLoading = false
             }
