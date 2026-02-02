@@ -22,7 +22,7 @@ const showPaymentModal = ref(false)
 const paymentData = ref<{ qrCode?: string, copyPaste?: string, paymentId?: string } | null>(null)
 
 // Polling for payment status
-const { pause, resume, isActive } = useIntervalFn(async () => {
+const { pause, resume } = useIntervalFn(async () => {
     if (!draft.value?.id) return
     
     // Silent fetch
