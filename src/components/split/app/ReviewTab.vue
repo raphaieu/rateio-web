@@ -21,20 +21,19 @@ const isPaying = ref(false)
 const showPaymentModal = ref(false)
 const paymentData = ref<{ qrCode?: string, copyPaste?: string, paymentId?: string } | null>(null)
 
+// Backend envia DRAFT ou PAID; reconhecer ambos para exibir corretamente
 const isPaid = computed(() => draft.value?.status === 'PAID')
 
-// Polling for payment status
+// Polling: quando webhook marca PAID, atualiza o split; fechamos a modal e exibimos os valores
 const { pause, resume } = useIntervalFn(async () => {
     if (!draft.value?.id) return
-    
-    // Silent fetch
+
     await store.fetchSplit(api, draft.value.id)
-    
+
     if (store.draft?.status === 'PAID') {
         pause()
         showPaymentModal.value = false
-        // Refresh calculation if needed
-        fetchCalculation()
+        await fetchCalculation()
     }
 }, 3000, { immediate: false })
 
@@ -73,10 +72,9 @@ const fetchCalculation = async () => {
     isLoading.value = false
 }
 
+// Sempre buscar cálculo ao montar (inclui split já PAID: ao voltar depois, exibe valores)
 onMounted(async () => {
-    fetchCalculation()
-    // Initialize MercadoPago if needed
-    // await useMercadoPago() 
+    await fetchCalculation()
 })
 
 const summary = computed(() => {
@@ -89,8 +87,14 @@ const summary = computed(() => {
     })).sort((a, b) => b.total - a.total)
 })
 
+// Total da conta (itens + extras) — só para conferir com a conta física do estabelecimento
 const totalBill = computed(() => {
-    return calculation.value?.grandTotalCents || 0
+    return calculation.value?.grandTotalCents ?? 0
+})
+
+// Taxa do app (PIX) — paga para desbloquear e ver quanto cada um deve ao estabelecimento
+const platformFeeCents = computed(() => {
+    return calculation.value?.finalTotalToPayCents ?? 0
 })
 
 const formatCurrency = (cents: number) => {
@@ -153,26 +157,39 @@ const handleMarkAsPaid = async () => {
       </Card>
 
       <div v-else>
-          <!-- Total Card -->
+          <!-- Total da conta: só para conferir com a conta física -->
           <Card class="mb-4 bg-primary text-primary-foreground">
               <CardHeader>
                   <CardTitle class="text-lg opacity-90">Total da Conta</CardTitle>
               </CardHeader>
               <CardContent>
                   <div class="text-4xl font-bold">{{ formatCurrency(totalBill) }}</div>
+                  <p class="text-sm opacity-90 mt-1">Conferir com a conta física do estabelecimento. A soma do que cada um paga ao estabelecimento fecha esse valor.</p>
               </CardContent>
           </Card>
 
-          <!-- Participants List -->
-          <h3 class="font-semibold mb-2">Por Pessoa</h3>
+          <!-- Taxa do app: PIX para desbloquear os valores por pessoa -->
+          <Card v-if="!isPaid && platformFeeCents > 0" class="mb-4 border-dashed">
+              <CardContent class="pt-4 pb-4">
+                  <div class="flex justify-between items-center">
+                      <span class="text-sm text-muted-foreground">Taxa do app (PIX para desbloquear)</span>
+                      <span class="font-semibold">{{ formatCurrency(platformFeeCents) }}</span>
+                  </div>
+              </CardContent>
+          </Card>
+
+          <!-- Por pessoa: quanto cada um deve pagar ao estabelecimento (visível só após desbloquear) -->
+          <h3 class="font-semibold mb-2">Quanto cada um paga ao estabelecimento</h3>
           <div class="space-y-2">
               <Card v-for="person in summary" :key="person.id">
                   <CardContent class="flex justify-between items-center p-4">
                       <div class="font-medium">{{ person.name }}</div>
-                      <div class="font-bold text-lg">{{ formatCurrency(person.total) }}</div>
+                      <div v-if="isPaid" class="font-bold text-lg">{{ formatCurrency(person.total) }}</div>
+                      <div v-else class="font-bold text-lg text-muted-foreground select-none blur-sm">{{ formatCurrency(person.total) }}</div>
                   </CardContent>
               </Card>
           </div>
+          <p v-if="!isPaid" class="text-sm text-muted-foreground mt-1">Pague a taxa via PIX para desbloquear e ver quanto cada um deve pagar ao estabelecimento.</p>
 
           <!-- Actions -->
           <div class="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
@@ -186,9 +203,12 @@ const handleMarkAsPaid = async () => {
                       <Loader2 class="w-4 h-4 animate-spin" /> Processando
                   </span>
                   <span v-else-if="isPaid" class="flex items-center gap-2">
-                      <Check class="w-4 h-4" /> Pago
+                      <Check class="w-4 h-4" /> Valores desbloqueados
                   </span>
-                  <span v-else>Pagar Conta</span>
+                  <span v-else>
+                      Desbloquear valores
+                      <span v-if="platformFeeCents > 0" class="ml-1 opacity-90">({{ formatCurrency(platformFeeCents) }})</span>
+                  </span>
               </Button>
                <!-- Manual Mark as Paid (Hidden or Secondary) -->
                <!-- Maybe user wanted this for debug or cash payments -->
@@ -200,9 +220,9 @@ const handleMarkAsPaid = async () => {
       <Dialog v-model:open="showPaymentModal">
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Pagamento via PIX</DialogTitle>
+                <DialogTitle>Pagar taxa do app (PIX)</DialogTitle>
                 <DialogDescription>
-                    Escaneie o QR Code ou copie a chave PIX abaixo para pagar.
+                    Pague a taxa via PIX para desbloquear os valores por pessoa. Escaneie o QR Code ou copie a chave abaixo.
                 </DialogDescription>
             </DialogHeader>
             
@@ -219,16 +239,20 @@ const handleMarkAsPaid = async () => {
                 </div>
                 
                 <div class="w-full relative">
+                    <label class="block text-sm font-medium text-muted-foreground mb-1">Chave PIX (copiar e colar)</label>
                     <textarea 
                         readonly 
-                        class="w-full text-xs font-mono p-2 pr-10 border rounded bg-muted resize-none h-24 focus:outline-none"
-                        :value="paymentData.copyPaste || 'Chave PIX indisponível'"
+                        rows="4"
+                        class="w-full min-h-[6rem] text-sm font-mono p-3 pr-12 border border-input rounded-md bg-muted/50 resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                        :value="paymentData.copyPaste || ''"
+                        placeholder="Chave PIX indisponível"
                     ></textarea>
                     <Button 
                         size="icon" 
-                        variant="ghost" 
-                        class="absolute right-1 top-1 text-muted-foreground hover:text-primary"
+                        variant="secondary" 
+                        class="absolute right-2 top-9 text-muted-foreground hover:text-primary"
                         @click="copyPixCode"
+                        title="Copiar chave PIX"
                     >
                         <Copy class="w-4 h-4" />
                     </Button>
