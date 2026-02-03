@@ -1,5 +1,11 @@
 import { loadMercadoPago } from "@mercadopago/sdk-js";
 
+declare global {
+    interface Window {
+        MercadoPago: any;
+    }
+}
+
 let mp: any = null;
 
 export const useMercadoPago = async () => {
