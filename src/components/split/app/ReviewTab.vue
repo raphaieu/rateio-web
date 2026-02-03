@@ -14,6 +14,7 @@ const { t } = useI18n()
 const api = useApi()
 const store = useSplitStore()
 const { copy } = useClipboard()
+import { useMercadoPago } from '@/utils/mercadopago'
 
 const draft = computed(() => store.draft)
 const calculation = ref<any>(null)
@@ -71,8 +72,9 @@ const fetchCalculation = async () => {
     isLoading.value = false
 }
 
-onMounted(() => {
+onMounted(async () => {
     fetchCalculation()
+    await useMercadoPago()
 })
 
 const summary = computed(() => {
@@ -214,7 +216,7 @@ const copyPixCode = () => {
             <div class="flex flex-col items-center justify-center space-y-4 py-4" v-if="paymentData">
                 <div class="border-2 border-primary/20 rounded-lg p-2 bg-white">
                     <img v-if="paymentData.qrCode" 
-                         :src="`data:image/png;base64,${paymentData.qrCode}`" 
+                         :src="`data:image/jpeg;base64,${paymentData.qrCode}`" 
                          alt="QR Code PIX" 
                          class="w-48 h-48 object-contain"
                     />
