@@ -132,9 +132,9 @@ const copyPixCode = async () => {
     }
 }
 
-const handleMarkAsPaid = async () => {
-    await store.markAsPaid(api)
-}
+// const handleMarkAsPaid = async () => {
+//     await store.markAsPaid(api)
+// }
 
 </script>
 
