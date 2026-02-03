@@ -2,18 +2,23 @@ import { useAuth } from "@clerk/vue";
 import { apiFetch } from "./client";
 import { useUiStore } from "@/stores/uiStore";
 
-export function useApi() {
+export type UseApiOptions = { silent?: boolean };
+
+/**
+ * API client com token Clerk.
+ * silent: true — não dispara o loader global (use para polling, refresh em background, etc.)
+ */
+export function useApi(options: UseApiOptions = {}) {
+    const { silent = false } = options;
     const { getToken, isSignedIn } = useAuth();
     const ui = useUiStore();
 
     async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
         if (!isSignedIn.value) {
-            // pode decidir: ou bloquear, ou deixar passar sem token
-            // pra MVP: bloquear em rotas privadas
             throw { status: 401, message: "Not signed in" };
         }
 
-        ui.startRequest();
+        if (!silent) ui.startRequest();
         try {
             const token = await getToken.value();
             const headers = new Headers(init.headers || {});
@@ -22,7 +27,7 @@ export function useApi() {
 
             return await apiFetch<T>(path, { ...init, headers });
         } finally {
-            ui.endRequest();
+            if (!silent) ui.endRequest();
         }
     }
 

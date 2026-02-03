@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useSplitStore } from '@/stores/splitStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AlertCircle, Loader2, Copy, Check, QrCode } from 'lucide-vue-next'
+import { useUser } from '@clerk/vue'
 import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
 import { useClipboard, useIntervalFn } from '@vueuse/core'
 
 const { t } = useI18n()
+const { user } = useUser()
 const api = useApi()
+const apiSilent = useApi({ silent: true }) // polling/background — não dispara loader global
 const store = useSplitStore()
 const { copy } = useClipboard()
 
@@ -18,17 +21,18 @@ const draft = computed(() => store.draft)
 const calculation = ref<any>(null)
 const isLoading = ref(false)
 const isPaying = ref(false)
+const loadError = ref<string | null>(null)
 const showPaymentModal = ref(false)
 const paymentData = ref<{ qrCode?: string, copyPaste?: string, paymentId?: string } | null>(null)
 
 // Backend envia DRAFT ou PAID; reconhecer ambos para exibir corretamente
 const isPaid = computed(() => draft.value?.status === 'PAID')
 
-// Polling: quando webhook marca PAID, atualiza o split; fechamos a modal e exibimos os valores
+// Polling: quando webhook marca PAID, atualiza o split; fechamos a modal e exibimos os valores (silent = sem loader global)
 const { pause, resume } = useIntervalFn(async () => {
     if (!draft.value?.id) return
 
-    await store.fetchSplit(api, draft.value.id)
+    await store.fetchSplit(apiSilent, draft.value.id)
 
     if (store.draft?.status === 'PAID') {
         pause()
@@ -67,15 +71,31 @@ const errors = computed(() => {
 
 const fetchCalculation = async () => {
     if (errors.value.length > 0) return
+    loadError.value = null
     isLoading.value = true
-    calculation.value = await store.computeReview(api)
-    isLoading.value = false
+    try {
+        const result = await store.computeReview(api)
+        if (result == null) {
+            loadError.value = 'Não foi possível carregar o cálculo. Verifique a conexão e tente novamente.'
+        } else {
+            calculation.value = result
+        }
+    } catch (e) {
+        console.error('[ReviewTab] compute-review failed', e)
+        loadError.value = 'Não foi possível carregar o cálculo. Verifique a conexão e tente novamente.'
+    } finally {
+        isLoading.value = false
+    }
 }
 
-// Sempre buscar cálculo ao montar (inclui split já PAID: ao voltar depois, exibe valores)
-onMounted(async () => {
-    await fetchCalculation()
-})
+// Quando o draft estiver pronto, buscar cálculo (mobile: aba Revisão pode montar antes do fetch do split)
+watch(
+    () => draft.value?.id,
+    (id) => {
+        if (id && !calculation.value && errors.value.length === 0) fetchCalculation()
+    },
+    { immediate: true }
+)
 
 const summary = computed(() => {
     if (!draft.value || !calculation.value) return []
@@ -132,9 +152,16 @@ const copyPixCode = async () => {
     }
 }
 
-// const handleMarkAsPaid = async () => {
-//     await store.markAsPaid(api)
-// }
+const handleMarkAsPaid = async () => {
+    await store.markAsPaid(api)
+}
+
+// Botão "Simular Pagamento": só em dev ou para Raphael (testes)
+const showSimulatePayment = computed(() => {
+    if (import.meta.env.DEV) return true
+    const email = user.value?.primaryEmailAddress?.emailAddress ?? ''
+    return email === 'rapha@raphael-martins.com'
+})
 
 </script>
 
@@ -150,6 +177,11 @@ const copyPixCode = async () => {
                   <li v-for="err in errors" :key="err">{{ err }}</li>
               </ul>
           </div>
+      </div>
+
+      <div v-else-if="loadError" class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
+          <p class="text-sm text-amber-800 dark:text-amber-200 mb-3">{{ loadError }}</p>
+          <Button variant="outline" size="sm" @click="fetchCalculation">Tentar novamente</Button>
       </div>
 
       <Card v-else-if="isLoading" class="flex justify-center items-center p-8">
@@ -268,9 +300,15 @@ const copyPixCode = async () => {
                 <Button type="button" variant="secondary" @click="showPaymentModal = false">
                     Fechar
                 </Button>
-                <!-- <Button type="button" variant="outline" @click="handleMarkAsPaid" class="ml-auto">
+                <Button
+                    v-if="showSimulatePayment"
+                    type="button"
+                    variant="outline"
+                    @click="handleMarkAsPaid"
+                    class="ml-auto"
+                >
                     Simular Pagamento
-                </Button> -->
+                </Button>
             </DialogFooter>
         </DialogContent>
      </Dialog>
