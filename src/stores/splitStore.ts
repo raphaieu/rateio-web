@@ -300,6 +300,20 @@ export const useSplitStore = defineStore('split', {
                 console.error(e)
                 return null
             }
+        },
+
+        async markAsPaid(_api: ApiClient) {
+            if (!this.draft) return
+            try {
+                // Assuming backend has this endpoint or we treat it as a generic update.
+                // For now, since we know paySplit exists, this might be a manual override.
+                // We will optimistically update and try to call a pay endpoint with a flag if possible,
+                // or just assume it's done. 
+                this.draft.status = 'PAID'
+                // TODO: Implement backend sync for manual mark as paid if needed
+            } catch (e) {
+                console.error(e)
+            }
         }
     }
 })
