@@ -6,6 +6,7 @@
         "newSplit": "Novo Rateio"
     },
     "split": {
+        "lockedMessage": "Este rateio já foi desbloqueado. Não é possível alterar itens, pessoas ou extras — crie um novo rateio para fazer alterações.",
         "tabs": {
             "participants": "Pessoas",
             "items": "Itens",

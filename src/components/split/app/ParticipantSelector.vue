@@ -5,9 +5,13 @@ import { Badge } from '@/components/ui/badge'
 import { Check } from 'lucide-vue-next'
 import { useApi } from '@/api/useApi'
 
-const props = defineProps<{
-    itemId: string
-}>()
+const props = withDefaults(
+    defineProps<{
+        itemId: string
+        readOnly?: boolean
+    }>(),
+    { readOnly: false }
+)
 
 const api = useApi()
 const store = useSplitStore()
@@ -16,6 +20,7 @@ const consumers = computed(() => store.getItemConsumers(props.itemId))
 const draft = computed(() => store.draft)
 
 const toggle = async (participantId: string) => {
+    if (props.readOnly) return
     await store.toggleShare(api, props.itemId, participantId)
 }
 
@@ -27,7 +32,10 @@ const isSelected = (id: string) => consumers.value.includes(id)
     <div 
         v-for="p in draft?.participants" 
         :key="p.id"
-        class="cursor-pointer select-none transition-all active:scale-95"
+        :class="[
+          'select-none transition-all',
+          readOnly ? 'cursor-default opacity-90' : 'cursor-pointer active:scale-95'
+        ]"
         @click="toggle(p.id)"
     >
         <Badge 

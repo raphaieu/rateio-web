@@ -35,6 +35,7 @@ onMounted(async () => {
 })
 
 const currentDraft = computed(() => store.draft)
+const isPaid = computed(() => store.draft?.status === 'PAID')
 
 const updateName = useDebounceFn(async (newName: string) => {
     await store.updateSplit(api, { name: newName })
@@ -56,8 +57,10 @@ const onNameInput = (e: Event) => {
         <div class="flex-1">
              <input 
                 v-model="currentDraft.name"
+                :readonly="isPaid"
                 @input="onNameInput"
                 class="bg-transparent font-bold text-lg w-full focus:outline-none"
+                :class="{ 'cursor-default': isPaid }"
                 :placeholder="t('split.namePlaceholder')"
              />
         </div>

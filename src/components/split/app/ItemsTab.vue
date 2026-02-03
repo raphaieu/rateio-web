@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { ref, nextTick, useTemplateRef } from 'vue'
+import { ref, computed, nextTick, useTemplateRef } from 'vue'
 import { useSplitStore } from '@/stores/splitStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import CurrencyInput from './CurrencyInput.vue'
 import ParticipantSelector from './ParticipantSelector.vue'
-import { Trash2, Loader2 } from 'lucide-vue-next'
+import { Trash2, Loader2, Lock } from 'lucide-vue-next'
 import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const api = useApi()
 const store = useSplitStore()
+
+const isPaid = computed(() => store.draft?.status === 'PAID')
 
 const newItemName = ref('')
 const newItemAmount = ref(0)
@@ -60,8 +62,14 @@ const clearAll = async (itemId: string) => {
 
 <template>
   <div class="space-y-6">
-     <!-- Quick Add Form -->
-     <Card class="bg-muted/50 border-dashed">
+     <!-- Aviso: rateio desbloqueado (somente leitura) -->
+     <div v-if="isPaid" class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 flex items-start gap-3">
+        <Lock class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <p class="text-sm text-amber-800 dark:text-amber-200">{{ t('split.lockedMessage') }}</p>
+     </div>
+
+     <!-- Quick Add Form (oculto quando já pago) -->
+     <Card v-if="!isPaid" class="bg-muted/50 border-dashed">
         <CardContent class="p-4 space-y-3">
              <div class="flex gap-3">
                 <Input 
@@ -94,12 +102,18 @@ const clearAll = async (itemId: string) => {
                             {{ (item.amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}
                         </p>
                     </div>
-                    <Button variant="ghost" size="icon" class="text-destructive h-8 w-8" @click="store.deleteItem(api, item.id)">
+                    <Button
+                        v-if="!isPaid"
+                        variant="ghost"
+                        size="icon"
+                        class="text-destructive h-8 w-8"
+                        @click="store.deleteItem(api, item.id)"
+                    >
                         <Trash2 class="w-4 h-4" />
                     </Button>
                 </div>
                 
-                <div class="flex justify-between items-center text-xs text-muted-foreground mt-2 mb-1">
+                <div v-if="!isPaid" class="flex justify-between items-center text-xs text-muted-foreground mt-2 mb-1">
                     <span>{{ t('items.whoConsumed') }}</span>
                     <div class="flex gap-2">
                         <button class="hover:text-foreground flex items-center gap-1" @click="selectAll(item.id)">
@@ -111,7 +125,7 @@ const clearAll = async (itemId: string) => {
                     </div>
                 </div>
                 
-                <ParticipantSelector :item-id="item.id" />
+                <ParticipantSelector :item-id="item.id" :read-only="isPaid" />
             </CardContent>
         </Card>
         

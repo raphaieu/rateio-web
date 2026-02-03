@@ -6,6 +6,7 @@
         "newSplit": "New Split"
     },
     "split": {
+        "lockedMessage": "This split is already unlocked. You can't edit items, people or extras — create a new split to make changes.",
         "tabs": {
             "participants": "People",
             "items": "Items",
