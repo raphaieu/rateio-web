@@ -33,7 +33,7 @@ Documento de referência para manter o contexto do projeto e o que já está imp
 ### URLs de produção (Vercel)
 
 - **Frontend:** https://rateio.ckao.in  
-- **Backend (API):** https://rateio-api.ckao.in  
+- **Backend (API):** https://api-rateio.ckao.in  
 
 O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o backend acima).
 
@@ -69,7 +69,7 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 | POST   | `/splits/:id/ai-parse`       | Parse por IA (stub; retorna mock + custo) |
 | POST   | `/splits/:id/compute-review` | Calcula revisão, salva split_costs, retorna cálculo + wallet |
 | POST   | `/splits/:id/pay`            | Pagamento (wallet e/ou PIX)      |
-| POST   | `/webhooks/mercadopago`      | Webhook MP; aprova pagamento, wallet, slug |
+| POST   | `/webhooks/mercadopago`      | Webhook MP; aprova pagamento, wallet, slug. URL produção: `https://api-rateio.ckao.in/webhooks/mercadopago` (registrar no painel MP). Em **Suas integrações** ativar tópico **Pagamentos** (`payment`), não Orders. GET na mesma URL retorna 200 para verificação. Debug: `DEBUG_WEBHOOK=true` e logs `[WEBHOOK MP]`. |
 | GET    | `/public/:slug`             | Dados read-only do split pago    |
 
 ---
