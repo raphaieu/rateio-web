@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/vue'
-import { ArrowRight, Zap, Shield, Users, Wallet } from 'lucide-vue-next'
+import { ArrowRight, Zap, Users, Wallet } from 'lucide-vue-next'
 </script>
 
 <template>
