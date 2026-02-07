@@ -1,7 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/vue'
-import { ArrowRight, Zap, Users, Wallet } from 'lucide-vue-next'
+import { ArrowRight, Zap, Users, ScanText, MessageCircle } from 'lucide-vue-next'
+
+const whatsappNumberRaw = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? ''
+const whatsappText = (import.meta.env.VITE_WHATSAPP_TEXT as string | undefined) ?? 'Olá! Tenho um feedback sobre o Rateio Justo.'
+
+const whatsappHref = computed(() => {
+  const digits = whatsappNumberRaw.replace(/\D/g, '')
+  if (!digits) return null
+  return `https://wa.me/${digits}?text=${encodeURIComponent(whatsappText)}`
+})
 </script>
 
 <template>
@@ -14,6 +24,12 @@ import { ArrowRight, Zap, Users, Wallet } from 'lucide-vue-next'
           <span class="font-bold text-xl tracking-tight">Rateio Justo</span>
         </div>
         <div class="flex items-center gap-4">
+           <router-link to="/sobre">
+             <Button variant="ghost" size="sm">Sobre</Button>
+           </router-link>
+           <router-link to="/tech">
+             <Button variant="ghost" size="sm">Tech</Button>
+           </router-link>
            <SignedOut>
             <SignInButton mode="modal">
               <Button variant="ghost" size="sm">Entrar</Button>
@@ -40,7 +56,7 @@ import { ArrowRight, Zap, Users, Wallet } from 'lucide-vue-next'
 
          <div class="container mx-auto px-4 relative z-10 text-center">
             <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20 mb-6">
-              ✨ A nova forma de dividir contas
+              A nova forma de dividir contas
             </div>
             <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight lg:text-7xl mb-6 text-foreground">
               Divida contas sem <br class="hidden md:block" />
@@ -100,12 +116,28 @@ import { ArrowRight, Zap, Users, Wallet } from 'lucide-vue-next'
               </div>
                <div class="bg-card p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                 <div class="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 text-primary">
-                  <Wallet class="h-6 w-6" />
+                  <ScanText class="h-6 w-6" />
                 </div>
-                <h3 class="text-xl font-bold mb-2">Pagamentos Integrados</h3>
-                <p class="text-muted-foreground leading-relaxed">Em breve, pague tudo diretamente pelo app com facilidade e segurança.</p>
+                <h3 class="text-xl font-bold mb-2">Importação inteligente</h3>
+                <p class="text-muted-foreground leading-relaxed">
+                  Em breve: escaneie (OCR) a conta e preencha os itens automaticamente. Também vamos trazer narração por áudio e transcrição para você ditar os itens por voz.
+                </p>
               </div>
            </div>
+        </div>
+      </section>
+
+      <!-- MVP disclaimer -->
+      <section class="py-10 border-t">
+        <div class="container mx-auto px-4">
+          <div class="rounded-2xl border bg-card p-6 text-sm text-muted-foreground leading-relaxed">
+            <p class="font-medium text-foreground mb-1">MVP em evolução</p>
+            <p>
+              O Rateio Justo ainda está em fase de MVP. Se o projeto tiver tração, vamos evoluir com melhorias contínuas e novas funcionalidades.
+              Quer entender a visão e o que vem por aí?
+              <router-link to="/sobre" class="text-primary underline underline-offset-4 hover:opacity-90">Veja a página Sobre</router-link>.
+            </p>
+          </div>
         </div>
       </section>
     </main>
@@ -116,10 +148,31 @@ import { ArrowRight, Zap, Users, Wallet } from 'lucide-vue-next'
            <img src="/logo.svg" alt="Rateio Justo Logo" class="h-6 w-6 grayscale" />
            <span class="font-bold text-lg">Rateio Justo</span>
         </div>
+        <div class="flex items-center gap-4">
+          <router-link to="/sobre" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Sobre
+          </router-link>
+          <router-link to="/tech" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Tech
+          </router-link>
+        </div>
         <p class="text-muted-foreground text-sm text-center md:text-right">
             &copy; {{ new Date().getFullYear() }} Rateio Justo. <br class="md:hidden"/> Todos os direitos reservados.
         </p>
       </div>
     </footer>
+
+    <!-- WhatsApp floating button (configurável por env) -->
+    <a
+      v-if="whatsappHref"
+      :href="whatsappHref"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="fixed bottom-6 right-6 z-50 inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-[#25D366] text-white hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      aria-label="Falar no WhatsApp"
+      title="Falar no WhatsApp"
+    >
+      <MessageCircle class="h-7 w-7" />
+    </a>
   </div>
 </template>

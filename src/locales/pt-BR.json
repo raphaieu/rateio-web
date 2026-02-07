@@ -3,7 +3,18 @@
         "mySplits": "Meus Rateios",
         "noSplits": "Nenhum rateio ainda.",
         "createSplit": "Crie um novo rateio para começar.",
-        "newSplit": "Novo Rateio"
+        "newSplit": "Novo Rateio",
+        "card": {
+            "participantsOne": "participante",
+            "participantsOther": "participantes",
+            "itemsOne": "item",
+            "itemsOther": "itens",
+            "delete": "Excluir",
+            "deleteConfirm": "Excluir “{name}”? Essa ação não pode ser desfeita.",
+            "deleted": "Rateio excluído.",
+            "deleteError": "Não foi possível excluir o rateio.",
+            "deleteNotSupported": "A API ainda não suporta exclusão de rateios."
+        }
     },
     "split": {
         "lockedMessage": "Este rateio já foi desbloqueado. Não é possível alterar itens, pessoas ou extras — crie um novo rateio para fazer alterações.",

@@ -3,7 +3,18 @@
         "mySplits": "My Splits",
         "noSplits": "No splits yet.",
         "createSplit": "Create a new split to get started.",
-        "newSplit": "New Split"
+        "newSplit": "New Split",
+        "card": {
+            "participantsOne": "participant",
+            "participantsOther": "participants",
+            "itemsOne": "item",
+            "itemsOther": "items",
+            "delete": "Delete",
+            "deleteConfirm": "Delete “{name}”? This can’t be undone.",
+            "deleted": "Split deleted.",
+            "deleteError": "Could not delete the split.",
+            "deleteNotSupported": "The API does not support deleting splits yet."
+        }
     },
     "split": {
         "lockedMessage": "This split is already unlocked. You can't edit items, people or extras — create a new split to make changes.",

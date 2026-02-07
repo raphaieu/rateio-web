@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSplitStore } from '@/stores/splitStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardTitle, CardContent, CardHeader } from '@/components/ui/card'
 import { UserButton } from '@clerk/vue'
-import { Plus } from 'lucide-vue-next'
+import type { SplitDraft } from '@/api/types'
+import { Plus, Trash2, Loader2 } from 'lucide-vue-next'
 import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
+import { toast } from '@/components/ui/toast/use-toast'
 
 const { t } = useI18n()
 const api = useApi()
@@ -16,6 +18,7 @@ const store = useSplitStore()
 const router = useRouter()
 
 const myDrafts = computed(() => store.mySplits)
+const deletingId = ref<string | null>(null)
 
 const createNewSplit = async () => {
     try {
@@ -30,6 +33,30 @@ const createNewSplit = async () => {
 
 const openDraft = (id: string) => {
     router.push(`/app/splits/${id}`)
+}
+
+const countLabel = (count: number, oneKey: string, otherKey: string) => {
+    return `${count} ${t(count === 1 ? oneKey : otherKey)}`
+}
+
+const deleteDraft = async (draft: SplitDraft) => {
+    const ok = window.confirm(t('dashboard.card.deleteConfirm', { name: draft.name }))
+    if (!ok) return
+
+    deletingId.value = draft.id
+    try {
+        await store.deleteSplit(api, draft.id)
+        toast({ title: t('dashboard.card.deleted') })
+    } catch (e: any) {
+        console.error(e)
+        if (e?.status === 404) {
+            toast({ title: t('dashboard.card.deleteNotSupported') })
+        } else {
+            toast({ title: t('dashboard.card.deleteError') })
+        }
+    } finally {
+        deletingId.value = null
+    }
 }
 
 onMounted(async () => {
@@ -57,15 +84,31 @@ onMounted(async () => {
       >
         <CardHeader class="pb-2">
             <CardTitle class="flex justify-between items-center text-lg">
-                {{ draft.name }}
-                <span class="text-xs text-muted-foreground font-normal">
-                    {{ new Date(Number(draft.createdAt) * 1000).toLocaleDateString() }}
+                <span class="truncate">{{ draft.name }}</span>
+                <span class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs text-muted-foreground font-normal">
+                        {{ new Date(Number(draft.createdAt) * 1000).toLocaleDateString() }}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      class="text-destructive hover:text-destructive/90"
+                      :disabled="deletingId === draft.id"
+                      @click.stop.prevent="deleteDraft(draft)"
+                      :aria-label="t('dashboard.card.delete')"
+                      :title="t('dashboard.card.delete')"
+                    >
+                      <Loader2 v-if="deletingId === draft.id" class="animate-spin" />
+                      <Trash2 v-else />
+                    </Button>
                 </span>
             </CardTitle>
         </CardHeader>
         <CardContent>
              <p class="text-sm text-muted-foreground">
-                {{ draft.participants.length }} participants • {{ draft.items.length }} items
+                {{ countLabel(draft.participants.length, 'dashboard.card.participantsOne', 'dashboard.card.participantsOther') }}
+                •
+                {{ countLabel(draft.items.length, 'dashboard.card.itemsOne', 'dashboard.card.itemsOther') }}
              </p>
         </CardContent>
       </Card>

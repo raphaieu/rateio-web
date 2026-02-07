@@ -9,6 +9,7 @@ type ApiClient = {
     post: <T>(path: string, body?: any) => Promise<T>
     put: <T>(path: string, body?: any) => Promise<T>
     patch: <T>(path: string, body?: any) => Promise<T>
+    delete: <T>(path: string) => Promise<T>
 }
 
 export const useSplitStore = defineStore('split', {
@@ -42,6 +43,21 @@ export const useSplitStore = defineStore('split', {
                 this.mySplits = await api.get<SplitDraft[]>('/splits')
             } catch (e) {
                 console.error(e)
+            } finally {
+                this.isLoading = false
+            }
+        },
+
+        async deleteSplit(api: ApiClient, id: string) {
+            this.isLoading = true
+            try {
+                await api.delete<void>(`/splits/${id}`)
+                this.mySplits = this.mySplits.filter(s => s.id !== id)
+                if (this.currentSplitId === id) this.currentSplitId = null
+                if (this.draft?.id === id) this.draft = null
+            } catch (e) {
+                console.error(e)
+                throw e
             } finally {
                 this.isLoading = false
             }

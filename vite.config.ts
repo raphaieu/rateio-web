@@ -16,7 +16,11 @@ export default defineConfig({
         short_name: 'Rateio',
         description: 'Divida contas sem dor de cabeça.',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        lang: 'pt-BR',
         icons: [
           {
             src: 'android-chrome-192x192.png',
