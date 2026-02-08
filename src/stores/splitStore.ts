@@ -264,7 +264,7 @@ export const useSplitStore = defineStore('split', {
             await this.syncItems(api)
         },
 
-        async toggleShare(api: ApiClient, itemId: string, participantId: string) {
+        async toggleShare(_api: ApiClient, itemId: string, participantId: string) {
             if (!this.draft) return
 
             const idx = this.draft.shares.findIndex(s => s.itemId === itemId && s.participantId === participantId)
