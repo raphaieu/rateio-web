@@ -32,7 +32,7 @@ onMounted(() => {
 // Após login/cadastro, levar de volta para a rota que tentou acessar (ex.: /app)
 watch(
   () => ({ isLoaded: isLoaded.value, isSignedIn: isSignedIn.value, returnUrl: route.query.returnUrl }),
-  (curr, prev) => {
+  (curr) => {
     if (!curr.isLoaded || !curr.isSignedIn || !curr.returnUrl) return
     const url = typeof curr.returnUrl === 'string' ? curr.returnUrl : '/app'
     if (!url.startsWith('/app')) return
