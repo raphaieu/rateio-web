@@ -41,7 +41,7 @@ Implementar a interface mobile-first do MVP, consumindo a API do Rateio Justo, c
 ## 4. Telas
 
 ### Criar Rateio
-- Nome (opcional)
+- Nome (opcional). Suporte a **geolocalização para o nome**: GPS (reverse geocoding) e busca de lugares por texto; ao escolher um lugar, aplica nome + coordenadas + metadados (placeProvider, placeId, placeName, placeDisplayName) no split.
 - Quantidade de pessoas
 
 ### Participantes
@@ -96,6 +96,11 @@ Implementar a interface mobile-first do MVP, consumindo a API do Rateio Justo, c
 
 ---
 
-## 7. Variáveis de ambiente
-- VITE_API_URL
+## 7. Geo (nome do rateio)
+- GET /geo/reverse?lat=&lng= — reverse geocoding (auth obrigatório).
+- GET /geo/search?q=&limit=&lat=&lng= — busca de lugares (auth obrigatório).
+- Split aceita latitude, longitude, placeProvider, placeId, placeName, placeDisplayName via PATCH /splits/:id.
+
+## 8. Variáveis de ambiente
+- VITE_API_BASE_URL (ou VITE_API_URL)
 - VITE_CLERK_PUBLISHABLE_KEY

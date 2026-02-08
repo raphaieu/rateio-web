@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import CurrencyInput from './CurrencyInput.vue'
 import ParticipantSelector from './ParticipantSelector.vue'
-import { Trash2, Loader2, Lock } from 'lucide-vue-next'
+import { Switch } from '@/components/ui/switch'
+import { Trash2, Loader2, Lock, Camera, Mic } from 'lucide-vue-next'
 import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
+import { toast } from '@/components/ui/toast/use-toast'
 
 const { t } = useI18n()
 const api = useApi()
@@ -20,6 +22,21 @@ const newItemName = ref('')
 const newItemAmount = ref(0)
 const isAdding = ref(false)
 const nameInput = useTemplateRef('name-input')
+
+const showComingSoon = (feature: 'camera' | 'mic') => {
+    if (feature === 'camera') {
+        toast({
+            title: 'Em breve',
+            description: 'Vamos permitir tirar foto da conta para escanear (OCR/IA) e preencher os itens automaticamente.',
+        })
+        return
+    }
+
+    toast({
+        title: 'Em breve',
+        description: 'Vamos permitir narrar a conta por áudio e o app transcrever/preencher os itens automaticamente.',
+    })
+}
 
 const addItem = async () => {
     if (!newItemName.value || newItemAmount.value <= 0 || isAdding.value) return
@@ -49,14 +66,16 @@ const addItem = async () => {
     }
 }
 
-const selectAll = async (itemId: string) => {
-    if (!store.draft) return
-    const allIds = store.draft.participants.map(p => p.id)
-    await store.setAllShares(api, itemId, allIds)
+const isAllConsumers = (itemId: string) => {
+    const participants = store.draft?.participants ?? []
+    const consumers = store.getItemConsumers(itemId)
+    return participants.length > 0 && consumers.length === participants.length
 }
 
-const clearAll = async (itemId: string) => {
-    await store.setAllShares(api, itemId, [])
+const onConsumedSwitch = (itemId: string, checked: boolean) => {
+    if (!store.draft) return
+    const participantIds = checked ? store.draft.participants.map(p => p.id) : []
+    store.setAllShares(api, itemId, participantIds)
 }
 </script>
 
@@ -71,6 +90,31 @@ const clearAll = async (itemId: string) => {
      <!-- Quick Add Form (oculto quando já pago) -->
      <Card v-if="!isPaid" class="bg-muted/50 border-dashed">
         <CardContent class="p-4 space-y-3">
+             <div class="flex items-center justify-between">
+                <div class="text-sm text-muted-foreground font-medium">Adicionar Item</div>
+                <div class="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        class="h-9 w-9 opacity-70"
+                        :disabled="isAdding"
+                        title="Em breve: escanear conta (OCR/IA)"
+                        @click="showComingSoon('camera')"
+                    >
+                        <Camera class="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        class="h-9 w-9 opacity-70"
+                        :disabled="isAdding"
+                        title="Em breve: narrar por áudio"
+                        @click="showComingSoon('mic')"
+                    >
+                        <Mic class="h-4 w-4" />
+                    </Button>
+                </div>
+             </div>
              <div class="flex gap-3">
                 <Input 
                     ref="name-input"
@@ -113,19 +157,21 @@ const clearAll = async (itemId: string) => {
                     </Button>
                 </div>
                 
-                <div v-if="!isPaid" class="flex justify-between items-center text-xs text-muted-foreground mt-2 mb-1">
-                    <span>{{ t('items.whoConsumed') }}</span>
-                    <div class="flex gap-2">
-                        <button class="hover:text-foreground flex items-center gap-1" @click="selectAll(item.id)">
-                            {{ t('items.all') }}
-                        </button>
-                        <button class="hover:text-foreground" @click="clearAll(item.id)">
-                            {{ t('items.none') }}
-                        </button>
+                <div v-if="!isPaid" class="mt-3 space-y-2">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm text-muted-foreground">{{ t('items.whoConsumed') }}</span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-xs text-muted-foreground">{{ t('items.none') }}</span>
+                            <Switch
+                                :model-value="isAllConsumers(item.id)"
+                                :disabled="isPaid || (store.draft?.participants.length ?? 0) === 0"
+                                @update:model-value="(v) => onConsumedSwitch(item.id, v === true)"
+                            />
+                            <span class="text-xs text-muted-foreground">{{ t('items.all') }}</span>
+                        </div>
                     </div>
+                    <ParticipantSelector :item-id="item.id" :read-only="isPaid" />
                 </div>
-                
-                <ParticipantSelector :item-id="item.id" :read-only="isPaid" />
             </CardContent>
         </Card>
         

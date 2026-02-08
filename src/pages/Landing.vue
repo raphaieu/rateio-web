@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
-import { SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/vue'
-import { ArrowRight, Zap, Users, ScanText, MessageCircle } from 'lucide-vue-next'
+import { SignedIn, SignedOut, SignInButton, SignUpButton, useAuth } from '@clerk/vue'
+import { ArrowRight, Zap, Users, MapPin, ScanText, MessageCircle } from 'lucide-vue-next'
+import { toast } from '@/components/ui/toast/use-toast'
+
+const route = useRoute()
+const router = useRouter()
+const { isSignedIn, isLoaded } = useAuth()
 
 const whatsappNumberRaw = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? ''
 const whatsappText = (import.meta.env.VITE_WHATSAPP_TEXT as string | undefined) ?? 'Olá! Tenho um feedback sobre o Rateio Justo.'
@@ -12,6 +18,28 @@ const whatsappHref = computed(() => {
   if (!digits) return null
   return `https://wa.me/${digits}?text=${encodeURIComponent(whatsappText)}`
 })
+
+// Feedback quando redirecionado por não estar logado (ex.: /app direto ou "Abrir app")
+onMounted(() => {
+  if (route.query.reason === 'login_required') {
+    toast({
+      title: 'Faça login para acessar',
+      description: 'Entre ou cadastre-se para usar o dashboard e criar rateios.',
+    })
+  }
+})
+
+// Após login/cadastro, levar de volta para a rota que tentou acessar (ex.: /app)
+watch(
+  () => ({ isLoaded: isLoaded.value, isSignedIn: isSignedIn.value, returnUrl: route.query.returnUrl }),
+  (curr, prev) => {
+    if (!curr.isLoaded || !curr.isSignedIn || !curr.returnUrl) return
+    const url = typeof curr.returnUrl === 'string' ? curr.returnUrl : '/app'
+    if (!url.startsWith('/app')) return
+    router.replace(url)
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -102,7 +130,7 @@ const whatsappHref = computed(() => {
               <p class="text-muted-foreground text-lg max-w-2xl mx-auto">Feito para resolver a bagunça do "quem deve quanto" de uma vez por todas.</p>
            </div>
            
-           <div class="grid md:grid-cols-3 gap-8">
+           <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div class="bg-card p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                 <div class="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 text-primary">
                   <Zap class="h-6 w-6" />
@@ -116,6 +144,13 @@ const whatsappHref = computed(() => {
                 </div>
                 <h3 class="text-xl font-bold mb-2">Grupos Ilimitados</h3>
                 <p class="text-muted-foreground leading-relaxed">Crie grupos para viagens, dividir aluguel, churrascos no fim de semana. Tudo em um só lugar.</p>
+              </div>
+               <div class="bg-card p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                <div class="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 text-primary">
+                  <MapPin class="h-6 w-6" />
+                </div>
+                <h3 class="text-xl font-bold mb-2">Nome do estabelecimento na hora</h3>
+                <p class="text-muted-foreground leading-relaxed">Use GPS ou busque o bar/restaurante por nome e o rateio já fica com o nome do lugar. Coordenadas e endereço ficam salvos.</p>
               </div>
                <div class="bg-card p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                 <div class="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 text-primary">

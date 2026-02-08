@@ -21,7 +21,13 @@ export const useSplitStore = defineStore('split', {
         isLoading: false,
         error: null as string | null,
         isSaving: false,
-        syncTimeoutId: null as any // Using 'any' because checking strict types for NodeJS.Timeout vs number can be annoying
+        syncTimeoutId: null as any, // Using 'any' because checking strict types for NodeJS.Timeout vs number can be annoying
+        participantsDirty: false,
+        syncParticipantsInFlight: null as Promise<void> | null,
+        participantsRevision: 0,
+        itemsDirty: false,
+        syncItemsInFlight: null as Promise<void> | null,
+        itemsRevision: 0,
     }),
 
     getters: {
@@ -37,6 +43,32 @@ export const useSplitStore = defineStore('split', {
     },
 
     actions: {
+        markParticipantsDirty() {
+            this.participantsDirty = true
+            this.participantsRevision++
+        },
+
+        markItemsDirty() {
+            this.itemsDirty = true
+            this.itemsRevision++
+        },
+
+        async ensureParticipantsSynced(api: ApiClient) {
+            // Duas passagens no máximo: cobre mudanças que ocorreram durante um sync em voo.
+            await this.syncParticipants(api)
+            if (this.participantsDirty) {
+                await this.syncParticipants(api)
+            }
+        },
+
+        async ensureItemsSynced(api: ApiClient) {
+            // Duas passagens no máximo: cobre mudanças que ocorreram durante um sync em voo.
+            await this.syncItems(api)
+            if (this.itemsDirty) {
+                await this.syncItems(api)
+            }
+        },
+
         async listSplits(api: ApiClient) {
             this.isLoading = true
             try {
@@ -138,6 +170,7 @@ export const useSplitStore = defineStore('split', {
                 sortOrder: this.draft.participants.length
             }
             this.draft.participants.push(newParticipant)
+            this.markParticipantsDirty()
 
             await this.syncParticipants(api)
         },
@@ -147,6 +180,8 @@ export const useSplitStore = defineStore('split', {
             this.draft.participants = this.draft.participants.filter(p => p.id !== participantId)
             // Also remove shares
             this.draft.shares = this.draft.shares.filter(s => s.participantId !== participantId)
+            this.markParticipantsDirty()
+            this.markItemsDirty()
 
             await this.syncParticipants(api)
             // We also need to sync items because shares changed? 
@@ -161,6 +196,7 @@ export const useSplitStore = defineStore('split', {
             const p = this.draft.participants.find(p => p.id === id)
             if (p) {
                 p.name = name
+                this.markParticipantsDirty()
                 // Debounce this in UI? Or just fire?
                 // For now, fire.
                 await this.syncParticipants(api)
@@ -169,15 +205,39 @@ export const useSplitStore = defineStore('split', {
 
         async syncParticipants(api: ApiClient) {
             if (!this.draft) return
-            this.isSaving = true
-            try {
+            // Nada para sincronizar
+            if (!this.participantsDirty && !this.syncParticipantsInFlight) return
+
+            // Dedup: se já existe um sync em andamento, apenas aguarde
+            if (this.syncParticipantsInFlight) {
+                await this.syncParticipantsInFlight
+                return
+            }
+
+            const doSync = async () => {
+                if (!this.draft) return
+                this.isSaving = true
+                const revisionAtStart = this.participantsRevision
+
                 await api.put(`/splits/${this.draft.id}/participants`, {
                     participants: this.draft.participants
                 })
+
+                // Só limpa dirty se nada mudou durante o sync
+                if (this.participantsRevision === revisionAtStart) {
+                    this.participantsDirty = false
+                }
+            }
+
+            this.syncParticipantsInFlight = doSync()
+            try {
+                await this.syncParticipantsInFlight
             } catch (e) {
                 console.error("Failed to sync participants", e)
+                throw e
             } finally {
                 this.isSaving = false
+                this.syncParticipantsInFlight = null
             }
         },
 
@@ -192,15 +252,16 @@ export const useSplitStore = defineStore('split', {
                 amountCents
             }
             this.draft.items.push(newItem)
-
-            await this.scheduleSyncItems(api)
+            this.markItemsDirty()
+            await this.syncItems(api)
         },
 
         async deleteItem(api: ApiClient, itemId: string) {
             if (!this.draft) return
             this.draft.items = this.draft.items.filter(i => i.id !== itemId)
             this.draft.shares = this.draft.shares.filter(s => s.itemId !== itemId)
-            await this.scheduleSyncItems(api)
+            this.markItemsDirty()
+            await this.syncItems(api)
         },
 
         async toggleShare(api: ApiClient, itemId: string, participantId: string) {
@@ -212,25 +273,19 @@ export const useSplitStore = defineStore('split', {
             } else {
                 this.draft.shares.push({ itemId, participantId })
             }
-
-            // Backend expects "items" update to contain "consumerIds"
-            // Our "shares" structure is decoupled. We need to map it back to the backend structure
-            // effectively, or backend needs a separate /shares endpoint.
-            // Start checking backend routes... 
-            // PUT /splits/:id/items expects { items: [ { ... consumerIds: [] } ] }
-            // So we must sync ITEMS when shares change.
-            await this.scheduleSyncItems(api)
+            this.markItemsDirty()
+            // Apenas estado local; sync ao sair da aba Itens
         },
 
-        async setAllShares(api: ApiClient, itemId: string, participantIds: string[]) {
+        setAllShares(_api: ApiClient, itemId: string, participantIds: string[]) {
             if (!this.draft) return
-            // Remove all existing shares for this item
-            this.draft.shares = this.draft.shares.filter(s => s.itemId !== itemId)
-            // Add new ones
-            for (const pid of participantIds) {
-                this.draft.shares.push({ itemId, participantId: pid })
-            }
-            await this.scheduleSyncItems(api)
+            const rest = this.draft.shares.filter(s => s.itemId !== itemId)
+            const newShares = rest.concat(
+                participantIds.map(pid => ({ itemId, participantId: pid }))
+            )
+            this.draft.shares = newShares
+            this.markItemsDirty()
+            // Sync apenas ao sair da aba Itens
         },
 
         async paySplit(api: ApiClient, topupCents: number = 0) {
@@ -272,34 +327,58 @@ export const useSplitStore = defineStore('split', {
 
         async syncItems(api: ApiClient) {
             if (!this.draft) return
-            this.isSaving = true
+
+            // Nada para sincronizar
+            if (!this.itemsDirty && !this.syncItemsInFlight) return
+
+            // Dedup: se já existe um sync em andamento, apenas aguarde
+            if (this.syncItemsInFlight) {
+                await this.syncItemsInFlight
+                return
+            }
 
             // Transform to backend format
             // item.consumerIds
 
-            const itemsPayload = this.draft.items.map(item => {
-                const consumerIds = this.draft?.shares
-                    .filter(s => s.itemId === item.id)
-                    .map(s => s.participantId)
+            const doSync = async () => {
+                if (!this.draft) return
+                this.isSaving = true
+                const revisionAtStart = this.itemsRevision
 
-                return {
-                    id: item.id,
-                    name: item.name,
-                    amountCents: item.amountCents,
-                    consumerIds
-                }
-            })
+                const itemsPayload = this.draft.items.map(item => {
+                    const consumerIds = this.draft?.shares
+                        .filter(s => s.itemId === item.id)
+                        .map(s => s.participantId)
 
-            try {
+                    return {
+                        id: item.id,
+                        name: item.name,
+                        amountCents: item.amountCents,
+                        consumerIds
+                    }
+                })
+
                 await api.put(`/splits/${this.draft.id}/items`, {
                     items: itemsPayload
                 })
+
+                // Só limpa dirty se nada mudou durante o sync
+                if (this.itemsRevision === revisionAtStart) {
+                    this.itemsDirty = false
+                }
+            }
+
+            this.syncItemsInFlight = doSync()
+            try {
+                await this.syncItemsInFlight
             } catch (e) {
                 console.error("Failed to sync items", e)
                 this.error = "Failed to save changes. Please try again."
+                throw e
             } finally {
                 this.isSaving = false
                 this.syncTimeoutId = null
+                this.syncItemsInFlight = null
             }
         },
 
@@ -318,6 +397,9 @@ export const useSplitStore = defineStore('split', {
         async computeReview(api: ApiClient) {
             if (!this.draft) return null
             try {
+                // Evita corrida: garanta que alterações recentes estejam persistidas antes do cálculo.
+                await this.ensureParticipantsSynced(api)
+                await this.ensureItemsSynced(api)
                 const res = await api.post<any>(`/splits/${this.draft.id}/compute-review`)
                 return res.calculation
             } catch (e) {

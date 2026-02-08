@@ -8,7 +8,9 @@ import { AlertCircle, Loader2, Copy, Check, QrCode } from 'lucide-vue-next'
 import { useUser } from '@clerk/vue'
 import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
-import { useClipboard, useIntervalFn } from '@vueuse/core'
+import { useClipboard, useDebounceFn, useIntervalFn } from '@vueuse/core'
+
+const props = withDefaults(defineProps<{ isActive?: boolean }>(), { isActive: false })
 
 const { t } = useI18n()
 const { user } = useUser()
@@ -66,7 +68,11 @@ const errors = computed(() => {
     })
     
     if (orphanedItems.length > 0) {
-        errs.push(t('review.errors.orphanedItems', { count: orphanedItems.length }))
+        const itemsLabel = orphanedItems
+            .map(i => i.name?.trim())
+            .filter(Boolean)
+            .join(', ')
+        errs.push(t('review.errors.orphanedItems', { items: itemsLabel || `${orphanedItems.length} item(ns)` }))
     }
     
     return errs
@@ -91,11 +97,25 @@ const fetchCalculation = async () => {
     }
 }
 
+const fetchCalculationDebounced = useDebounceFn(() => {
+    fetchCalculation()
+}, 150)
+
 // Quando o draft estiver pronto, buscar cálculo (mobile: aba Revisão pode montar antes do fetch do split)
 watch(
     () => draft.value?.id,
     (id) => {
         if (id && !calculation.value && errors.value.length === 0) fetchCalculation()
+    },
+    { immediate: true }
+)
+
+// Sempre que a aba Revisão ficar ativa OU houver mudanças no draft (itens/pessoas),
+// recalc (o store garante sync antes do compute-review).
+watch(
+    () => [props.isActive, store.itemsRevision, store.participantsRevision] as const,
+    ([active]) => {
+        if (active) fetchCalculationDebounced()
     },
     { immediate: true }
 )
@@ -232,8 +252,22 @@ const showSimulatePayment = computed(() => {
                       </div>
                   </CardContent>
               </Card>
+              <p v-if="!isUnlocked" class="text-sm text-muted-foreground mt-1">Pague a taxa via PIX para desbloquear e ver quanto cada um deve pagar ao estabelecimento.</p>
+              <div
+                v-if="isUnlocked"
+                class="mb-3 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground leading-relaxed"
+            >
+                <p>
+                    <span class="font-medium text-foreground">Observação:</span>
+                    os valores em destaque já incluem um <span class="font-medium text-foreground">ajuste de centavos</span> para a soma fechar exatamente o total da conta.
+                    Esse ajuste é distribuído de forma balanceada.
+                </p>
+                <p class="mt-2">
+                    Por transparência, abaixo de cada valor exibimos o <span class="font-medium text-foreground">valor "real" (sem arredondamento)</span>.
+                    Diferenças de centavos entre pessoas são esperadas e podem ser acertadas entre os participantes.
+                </p>
+            </div>
           </div>
-          <p v-if="!isUnlocked" class="text-sm text-muted-foreground mt-1">Pague a taxa via PIX para desbloquear e ver quanto cada um deve pagar ao estabelecimento.</p>
 
           <!-- Actions -->
           <div class="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">

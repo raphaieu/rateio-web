@@ -8,8 +8,13 @@ import { ArrowLeft } from 'lucide-vue-next'
     <header class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div class="container mx-auto px-4 h-16 flex items-center justify-between">
         <router-link to="/" class="flex items-center gap-2">
-          <img src="/logo.svg" alt="Rateio Justo Logo" class="h-7 w-auto object-contain shrink-0" />
-          <span class="font-bold text-lg tracking-tight">Rateio Justo</span>
+          <div class="flex items-center">
+            <img
+              src="/logo.svg"
+              alt="Rateio Justo Logo"
+              class="h-10 w-auto object-contain shrink-0"
+            />
+          </div>
         </router-link>
 
         <div class="flex items-center gap-3">
@@ -57,6 +62,7 @@ import { ArrowLeft } from 'lucide-vue-next'
           <li><span class="font-medium text-foreground">Hono + TypeScript</span> (rotas e validação).</li>
           <li><span class="font-medium text-foreground">Drizzle ORM</span> para schema e queries.</li>
           <li><span class="font-medium text-foreground">Serviços</span>: cálculo do rateio, wallet e integrações.</li>
+          <li><span class="font-medium text-foreground">Geo (Nominatim)</span>: rota <code class="text-sm bg-muted px-1 rounded">/geo</code> com reverse geocoding e busca de lugares para definir o nome do rateio; auth obrigatório. Splits armazenam latitude, longitude e metadados do lugar (placeProvider, placeId, placeName, placeDisplayName).</li>
         </ul>
       </section>
 

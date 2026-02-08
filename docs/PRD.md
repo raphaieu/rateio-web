@@ -40,7 +40,7 @@ Fora do MVP:
 ---
 
 ## 5. Fluxo do MVP
-1. Criar rateio (nome opcional + número de pessoas)
+1. Criar rateio (nome opcional + número de pessoas). O nome pode ser definido manualmente ou a partir de **geolocalização**: usar GPS para sugerir o nome do estabelecimento (reverse geocoding) ou buscar um lugar por texto e aplicar como nome; coordenadas e metadados do lugar são opcionais e armazenados no split.
 2. Editar nomes dos participantes (apenas o criador)
 3. Inserir itens:
    - Manual (item + valor + consumidores)

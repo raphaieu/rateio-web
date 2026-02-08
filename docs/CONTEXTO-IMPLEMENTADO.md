@@ -9,6 +9,7 @@ Documento de referência para manter o contexto do projeto e o que já está imp
 - **O que é:** Webapp mobile-first para dividir contas de forma justa, item a item (bar/restaurante). A ideia é **saber quem consumiu o quê** para cada um pagar **apenas a sua parte** ao estabelecimento — não dividir igualmente entre todos.
 - **Proposta de valor:** Justiça (cada um paga só o que consumiu ao estabelecimento), rapidez, clareza.
 - **Fluxo MVP:** Criar rateio → Participantes → Itens (manual / colar texto / IA) → Extras → Revisão → **Desbloquear valores** (PIX da taxa do app) → Ver quanto cada um paga ao estabelecimento → Link público read-only.
+- **Nome do rateio e geolocalização:** O nome do rateio pode ser definido manualmente ou a partir de um **estabelecimento/lugar**: o usuário pode usar GPS para obter sugestão de nome (reverse geocoding) ou buscar um lugar por texto (busca de lugares). Ao escolher um lugar, o app salva coordenadas e metadados do lugar (provider, placeId, placeName, placeDisplayName) no split, permitindo enriquecer o contexto do rateio e evoluir para exibição em mapa, histórico por estabelecimento, etc.
 - **Semântica da Revisão:**
   - **Total da conta:** Só para **conferência** com a conta física do estabelecimento (double check). Não é valor a “pagar” no app.
   - **Desbloquear valores:** O usuário paga apenas a **taxa do app via PIX**. Depois disso, os valores **por pessoa** são exibidos (quanto cada um deve pagar ao estabelecimento). A soma desses valores fecha o total da conta.
@@ -61,7 +62,7 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 | GET    | `/pricing/current`           | Taxa base + tiers de IA          |
 | GET    | `/splits`                    | Lista splits do usuário          |
 | GET    | `/splits/:id`                | Detalhe do split (participants, items, shares, extras) |
-| PATCH  | `/splits/:id`                | Atualiza nome                    |
+| PATCH  | `/splits/:id`                | Atualiza nome e campos de geolocalização (latitude, longitude, placeProvider, placeId, placeName, placeDisplayName) |
 | POST   | `/splits`                    | Cria split (name, peopleCount)   |
 | PUT    | `/splits/:id/participants`   | Sincroniza participantes         |
 | PUT    | `/splits/:id/items`          | Sincroniza itens + consumerIds   |
@@ -71,6 +72,8 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 | POST   | `/splits/:id/pay`            | Pagamento (wallet e/ou PIX)      |
 | POST   | `/webhooks/mercadopago`      | Webhook MP; aprova pagamento, wallet, slug. URL produção: `https://api-rateio.ckao.in/webhooks/mercadopago` (registrar no painel MP). Em **Suas integrações** ativar tópico **Pagamentos** (`payment`), não Orders. GET na mesma URL retorna 200 para verificação. Debug: `DEBUG_WEBHOOK=true` e logs `[WEBHOOK MP]`. |
 | GET    | `/public/:slug`             | Dados read-only do split pago    |
+| GET    | `/geo/reverse?lat=&lng=`    | Reverse geocoding (sugestão de nome a partir de coordenadas); auth obrigatório |
+| GET    | `/geo/search?q=&limit=&lat=&lng=` | Busca de lugares por texto; opcionalmente bias por coordenadas; auth obrigatório |
 
 ---
 
@@ -79,8 +82,9 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 ### 4.1 Backend (rateio-api)
 
 - **Auth:** Middleware Clerk (JWT); variável `clerkUserId` nas rotas protegidas.
-- **DB (Drizzle + Turso):** Tabelas `splits`, `participants`, `items`, `item_shares`, `extras`, `split_costs`, `wallets`, `wallet_ledger`, `payments` conforme SPECS.
-- **CRUD de splits:** Criar, listar, buscar por id, PATCH nome; checagem de owner e status PAID (bloqueio de edição).
+- **DB (Drizzle + Turso):** Tabelas `splits`, `participants`, `items`, `item_shares`, `extras`, `split_costs`, `wallets`, `wallet_ledger`, `payments` conforme SPECS. Na tabela `splits` há campos de geolocalização: `latitude`, `longitude`, `place_provider`, `place_id`, `place_name`, `place_display_name`.
+- **CRUD de splits:** Criar, listar, buscar por id, PATCH nome e campos de geolocalização (latitude, longitude, placeProvider, placeId, placeName, placeDisplayName); checagem de owner e status PAID (bloqueio de edição).
+- **Geo:** Rota `/geo` (Hono) com auth obrigatório; **GET /geo/reverse** (Nominatim) para reverse geocoding; **GET /geo/search** (Nominatim) para busca de lugares por texto, com viewbox opcional (lat/lng) para priorizar resultados próximos; resultados com `provider`, `placeId`, `name`, `displayName`, `latitude`, `longitude` (e `distanceKm` quando há centro).
 - **Participantes:** PUT com array (cria/atualiza/remove); sortOrder.
 - **Itens + shares:** PUT com `items[]` e `consumerIds` por item; replace completo por request.
 - **Extras:** PUT com array (SERVICE_PERCENT / FIXED, allocationMode PROPORTIONAL / EQUAL).
@@ -99,7 +103,11 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 - **Auth:** Clerk (plugin Vue); `useApi()` com Bearer token; rotas `/app` e `/app/splits/:id` para uso autenticado.
 - **Landing:** Sign In / Sign Up (modal); “Go to Dashboard” quando logado.
 - **Dashboard:** Lista splits do usuário (cards com nome, data, nº participantes e itens); botão “+” para criar; ao criar redireciona para `/app/splits/:id`.
-- **SplitEditor:** Cabeçalho com voltar e nome editável (debounced PATCH). Abas: Participantes, Itens, Extras, Revisão.
+- **SplitEditor:** Cabeçalho com voltar e **nome do rateio** editável (debounced PATCH). Suporte a **geolocalização para o nome**:
+  - **GPS:** botão para obter posição atual; reverse geocoding sugere nome do lugar e o usuário pode aplicar como nome do rateio.
+  - **Busca de lugares:** campo de busca (ex.: “Bar do Zé, Restaurante…”); chamada a `GET /geo/search` com bias opcional pelas coordenadas já salvas; resultados clicáveis aplicam nome + coordenadas + metadados do lugar no split.
+  - **“Usar [texto] como nome”:** aplica o texto digitado como nome e, se houver resultado de reverse (após GPS), enriquece com placeId/provider/etc.
+  - Campos persistidos no draft e no PATCH: `latitude`, `longitude`, `placeProvider`, `placeId`, `placeName`, `placeDisplayName`.
 - **Participantes:** Lista editável (nome inline); adicionar; remover; sync via PUT `/splits/:id/participants`.
 - **Itens:** Adicionar item (nome + valor em R$ via `CurrencyInput`); lista com valor; por item, seleção de consumidores via `ParticipantSelector` (badges toggle); “Todos” / “Nenhum”; sync com debounce (PUT items + consumerIds).
 - **Extras:** Apenas mensagem “Em breve” — **não implementado** (backend já tem PUT extras e cálculo).
@@ -163,3 +171,4 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 - **grandTotalCents:** Soma itens + extras (total da conta, só para conferência com a conta física).
 - **finalTotalToPayCents:** Taxa do app (PIX) paga pelo criador para **desbloquear** os valores por pessoa.
 - **public_slug:** Gerado após PAID; usado em `/public/:slug` e na página `/p/:slug`.
+- **Geo / nome do rateio:** Coordenadas e metadados do estabelecimento (placeProvider, placeId, placeName, placeDisplayName) são opcionais no split; usados para sugerir e persistir o nome do rateio a partir de GPS ou busca de lugares (Nominatim).

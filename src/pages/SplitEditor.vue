@@ -37,6 +37,13 @@ onMounted(async () => {
     }
 })
 
+// Ao sair da aba Itens, uma única requisição com todo o estado (itens + seleções)
+watch(activeTab, (newTab, oldTab) => {
+    if (oldTab === 'items' && newTab !== 'items') {
+        store.syncItems(api)
+    }
+})
+
 const currentDraft = computed(() => store.draft)
 const isPaid = computed(() => store.draft?.status === 'PAID')
 const hasLocation = computed(() => currentDraft.value?.latitude != null && currentDraft.value?.longitude != null)
@@ -405,7 +412,7 @@ const pinCurrentLocation = async () => {
                 <ExtrasTab />
              </TabsContent>
              <TabsContent value="review">
-                <ReviewTab />
+                <ReviewTab :is-active="activeTab === 'review'" />
              </TabsContent>
         </div>
      </Tabs>
