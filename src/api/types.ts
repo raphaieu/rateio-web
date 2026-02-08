@@ -1,6 +1,12 @@
 export type SplitDraft = {
     id: string
     name: string
+    latitude?: number | null
+    longitude?: number | null
+    placeProvider?: string | null
+    placeId?: string | null
+    placeName?: string | null
+    placeDisplayName?: string | null
     participants: Participant[]
     items: Item[]
     // shares: maps itemId + participantId -> ownership

@@ -19,9 +19,12 @@ const whatsappHref = computed(() => {
     <!-- Navbar -->
     <header class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div class="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <img src="/logo.svg" alt="Rateio Justo Logo" class="h-8 w-8" />
-          <span class="font-bold text-xl tracking-tight">Rateio Justo</span>
+        <div class="flex items-center">
+          <img
+            src="/logo.svg"
+            alt="Rateio Justo Logo"
+            class="h-10 w-auto object-contain shrink-0"
+          />
         </div>
         <div class="flex items-center gap-4">
            <router-link to="/sobre">
@@ -144,9 +147,12 @@ const whatsappHref = computed(() => {
     
     <footer class="border-t py-12 bg-background">
       <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
-           <img src="/logo.svg" alt="Rateio Justo Logo" class="h-6 w-6 grayscale" />
-           <span class="font-bold text-lg">Rateio Justo</span>
+        <div class="flex items-center opacity-80 hover:opacity-100 transition-opacity">
+           <img
+             src="/logo.svg"
+             alt="Rateio Justo Logo"
+             class="h-[72px] w-auto object-contain shrink-0"
+           />
         </div>
         <div class="flex items-center gap-4">
           <router-link to="/sobre" class="text-sm text-muted-foreground hover:text-foreground transition-colors">

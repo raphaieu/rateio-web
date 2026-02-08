@@ -27,6 +27,9 @@ const paymentData = ref<{ qrCode?: string, copyPaste?: string, paymentId?: strin
 
 // Backend envia DRAFT ou PAID; reconhecer ambos para exibir corretamente
 const isPaid = computed(() => draft.value?.status === 'PAID')
+const isDev = import.meta.env.DEV
+// Em dev, não travar o fluxo por pagamento: exibir valores direto
+const isUnlocked = computed(() => isPaid.value || isDev)
 
 // Polling: quando webhook marca PAID, atualiza o split; fechamos a modal e exibimos os valores (silent = sem loader global)
 const { pause, resume } = useIntervalFn(async () => {
@@ -103,7 +106,8 @@ const summary = computed(() => {
     return draft.value.participants.map(p => ({
         id: p.id,
         name: p.name,
-        total: calculation.value.participantTotals[p.id] || 0
+        total: calculation.value.participantTotals[p.id] || 0,
+        totalRaw: calculation.value.participantTotalsRaw?.[p.id] as string | undefined
     })).sort((a, b) => b.total - a.total)
 })
 
@@ -158,7 +162,7 @@ const handleMarkAsPaid = async () => {
 
 // Botão "Simular Pagamento": só em dev ou para Raphael (testes)
 const showSimulatePayment = computed(() => {
-    if (import.meta.env.DEV) return true
+    if (isDev) return true
     const email = user.value?.primaryEmailAddress?.emailAddress ?? ''
     return email === 'rapha@raphael-martins.com'
 })
@@ -201,7 +205,7 @@ const showSimulatePayment = computed(() => {
           </Card>
 
           <!-- Taxa do app: PIX para desbloquear os valores por pessoa -->
-          <Card v-if="!isPaid && platformFeeCents > 0" class="mb-4 border-dashed">
+          <Card v-if="!isUnlocked && platformFeeCents > 0" class="mb-4 border-dashed">
               <CardContent class="pt-4 pb-4">
                   <div class="flex justify-between items-center">
                       <span class="text-sm text-muted-foreground">Taxa do app (PIX para desbloquear)</span>
@@ -216,18 +220,36 @@ const showSimulatePayment = computed(() => {
               <Card v-for="person in summary" :key="person.id">
                   <CardContent class="flex justify-between items-center p-4">
                       <div class="font-medium">{{ person.name }}</div>
-                      <div v-if="isPaid" class="font-bold text-lg">{{ formatCurrency(person.total) }}</div>
-                      <div v-else class="font-bold text-lg text-muted-foreground select-none blur-sm">{{ formatCurrency(person.total) }}</div>
+                      <div class="text-right">
+                          <div v-if="isUnlocked" class="font-bold text-lg">{{ formatCurrency(person.total) }}</div>
+                          <div v-else class="font-bold text-lg text-muted-foreground select-none blur-sm">{{ formatCurrency(person.total) }}</div>
+                          <div
+                              v-if="isUnlocked && person.totalRaw"
+                              class="text-xs text-muted-foreground font-mono leading-none mt-1"
+                          >
+                              {{ person.totalRaw }}
+                          </div>
+                      </div>
                   </CardContent>
               </Card>
           </div>
-          <p v-if="!isPaid" class="text-sm text-muted-foreground mt-1">Pague a taxa via PIX para desbloquear e ver quanto cada um deve pagar ao estabelecimento.</p>
+          <p v-if="!isUnlocked" class="text-sm text-muted-foreground mt-1">Pague a taxa via PIX para desbloquear e ver quanto cada um deve pagar ao estabelecimento.</p>
 
           <!-- Actions -->
           <div class="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
-               <Button 
-                  class="flex-1" 
-                  size="lg" 
+               <Button
+                  v-if="isDev"
+                  class="flex-1"
+                  size="lg"
+                  variant="secondary"
+                  disabled
+              >
+                  Modo dev: valores liberados
+              </Button>
+               <Button
+                  v-else
+                  class="flex-1"
+                  size="lg"
                   :disabled="isPaid || isPaying"
                   @click="handlePay"
               >

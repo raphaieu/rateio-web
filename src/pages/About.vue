@@ -8,7 +8,7 @@ import { ArrowLeft } from 'lucide-vue-next'
     <header class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div class="container mx-auto px-4 h-16 flex items-center justify-between">
         <router-link to="/" class="flex items-center gap-2">
-          <img src="/logo.svg" alt="Rateio Justo Logo" class="h-7 w-7" />
+          <img src="/logo.svg" alt="Rateio Justo Logo" class="h-7 w-auto object-contain shrink-0" />
           <span class="font-bold text-lg tracking-tight">Rateio Justo</span>
         </router-link>
 

@@ -99,19 +99,27 @@ export const useSplitStore = defineStore('split', {
             }
         },
 
-        async updateSplit(api: ApiClient, updates: { name?: string }) {
+        async updateSplit(api: ApiClient, updates: {
+            name?: string;
+            latitude?: number | null;
+            longitude?: number | null;
+            placeProvider?: string | null;
+            placeId?: string | null;
+            placeName?: string | null;
+            placeDisplayName?: string | null;
+        }) {
             if (!this.draft) return
 
             // Optimistic
             if (updates.name) this.draft.name = updates.name
+            if (updates.latitude !== undefined) this.draft.latitude = updates.latitude
+            if (updates.longitude !== undefined) this.draft.longitude = updates.longitude
+            if (updates.placeProvider !== undefined) this.draft.placeProvider = updates.placeProvider
+            if (updates.placeId !== undefined) this.draft.placeId = updates.placeId
+            if (updates.placeName !== undefined) this.draft.placeName = updates.placeName
+            if (updates.placeDisplayName !== undefined) this.draft.placeDisplayName = updates.placeDisplayName
 
             try {
-                // We don't have a specific PATCH endpoint for name yet, likely need to check backend routes.
-                // Backend POST /splits created it. PUT /splits/:id/participants...
-                // Check if there is a PUT /splits/:id or PATCH /splits/:id
-                // If not, we might need to add it to backend.
-                // Assuming currently we CANNOT update name on backend based on previous file read of routes/splits.ts
-                // I will add the backend endpoint for name update as well.
                 await api.patch(`/splits/${this.draft.id}`, updates)
             } catch (e) {
                 console.error(e)
