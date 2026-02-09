@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useSplitStore } from '@/stores/splitStore'
 import { Badge } from '@/components/ui/badge'
-import { Check } from 'lucide-vue-next'
 import { useApi } from '@/api/useApi'
 
 const props = withDefaults(
