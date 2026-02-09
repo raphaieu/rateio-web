@@ -84,7 +84,7 @@ O front consome a API via `VITE_API_BASE_URL` (em produção apontando para o ba
 - **Auth:** Middleware Clerk (JWT); variável `clerkUserId` nas rotas protegidas.
 - **DB (Drizzle + Turso):** Tabelas `splits`, `participants`, `items`, `item_shares`, `extras`, `split_costs`, `wallets`, `wallet_ledger`, `payments` conforme SPECS. Na tabela `splits` há campos de geolocalização: `latitude`, `longitude`, `place_provider`, `place_id`, `place_name`, `place_display_name`.
 - **CRUD de splits:** Criar, listar, buscar por id, PATCH nome e campos de geolocalização (latitude, longitude, placeProvider, placeId, placeName, placeDisplayName); checagem de owner e status PAID (bloqueio de edição).
-- **Geo:** Rota `/geo` (Hono) com auth obrigatório; **GET /geo/reverse** (Nominatim) para reverse geocoding; **GET /geo/search** (Nominatim) para busca de lugares por texto, com viewbox opcional (lat/lng) para priorizar resultados próximos; resultados com `provider`, `placeId`, `name`, `displayName`, `latitude`, `longitude` (e `distanceKm` quando há centro).
+- **Geo:** Rota `/geo` (Hono) com auth obrigatório; **GET /geo/reverse** e **GET /geo/search** usam **Google Places/Geocoding** quando `GOOGLE_MAPS_API_KEY` está setada; caso contrário, caem para **Nominatim**. Resultados com `provider`, `placeId`, `name`, `displayName`, `latitude`, `longitude` (e `distanceKm` quando há centro).
 - **Participantes:** PUT com array (cria/atualiza/remove); sortOrder.
 - **Itens + shares:** PUT com `items[]` e `consumerIds` por item; replace completo por request.
 - **Extras:** PUT com array (SERVICE_PERCENT / FIXED, allocationMode PROPORTIONAL / EQUAL).

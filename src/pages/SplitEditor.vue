@@ -47,6 +47,28 @@ watch(activeTab, (newTab, oldTab) => {
 const currentDraft = computed(() => store.draft)
 const isPaid = computed(() => store.draft?.status === 'PAID')
 const hasLocation = computed(() => currentDraft.value?.latitude != null && currentDraft.value?.longitude != null)
+
+const placeAddressLine = computed<string | null>(() => {
+    const display = currentDraft.value?.placeDisplayName?.trim() || ''
+    if (!display) return null
+
+    const nameCandidates = [
+        currentDraft.value?.placeName?.trim(),
+        currentDraft.value?.name?.trim(),
+    ].filter((v): v is string => Boolean(v))
+
+    for (const prefix of nameCandidates) {
+        if (display === prefix) return null
+        const normalizedPrefix = `${prefix},`
+        if (display.startsWith(normalizedPrefix)) {
+            const rest = display.slice(normalizedPrefix.length).trim()
+            return rest || null
+        }
+    }
+
+    return display
+})
+
 const isLocating = ref(false)
 const isPlaceSearchOpen = ref(false)
 const placeQuery = ref('')
@@ -255,15 +277,24 @@ const pinCurrentLocation = async () => {
         <Button variant="ghost" size="icon" @click="router.push('/app')">
             <ArrowLeft class="w-5 h-5" />
         </Button>
-        <div class="flex-1">
-             <input 
-                v-model="currentDraft.name"
-                :readonly="isPaid"
-                @input="onNameInput"
-                class="bg-transparent font-bold text-lg w-full focus:outline-none"
-                :class="{ 'cursor-default': isPaid }"
-                :placeholder="t('split.namePlaceholder')"
-             />
+        <div class="flex-1 min-w-0">
+             <div class="flex flex-col min-w-0">
+                <input 
+                   v-model="currentDraft.name"
+                   :readonly="isPaid"
+                   @input="onNameInput"
+                   class="bg-transparent font-bold text-lg w-full focus:outline-none"
+                   :class="{ 'cursor-default': isPaid }"
+                   :placeholder="t('split.namePlaceholder')"
+                />
+                <div
+                  v-if="placeAddressLine"
+                  class="text-xs text-muted-foreground mt-0.5 line-clamp-1"
+                  :title="placeAddressLine"
+                >
+                  {{ placeAddressLine }}
+                </div>
+             </div>
         </div>
         <Button
           variant="ghost"

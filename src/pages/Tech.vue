@@ -62,7 +62,7 @@ import { ArrowLeft } from 'lucide-vue-next'
           <li><span class="font-medium text-foreground">Hono + TypeScript</span> (rotas e validação).</li>
           <li><span class="font-medium text-foreground">Drizzle ORM</span> para schema e queries.</li>
           <li><span class="font-medium text-foreground">Serviços</span>: cálculo do rateio, wallet e integrações.</li>
-          <li><span class="font-medium text-foreground">Geo (Nominatim)</span>: rota <code class="text-sm bg-muted px-1 rounded">/geo</code> com reverse geocoding e busca de lugares para definir o nome do rateio; auth obrigatório. Splits armazenam latitude, longitude e metadados do lugar (placeProvider, placeId, placeName, placeDisplayName).</li>
+          <li><span class="font-medium text-foreground">Geo (Google Places/Geocoding)</span>: rota <code class="text-sm bg-muted px-1 rounded">/geo</code> com reverse geocoding e busca de lugares para definir o nome do rateio; auth obrigatório. Se <code class="text-sm bg-muted px-1 rounded">GOOGLE_MAPS_API_KEY</code> não estiver setada, cai para Nominatim. Splits armazenam latitude, longitude e metadados do lugar (placeProvider, placeId, placeName, placeDisplayName).</li>
         </ul>
       </section>
 
