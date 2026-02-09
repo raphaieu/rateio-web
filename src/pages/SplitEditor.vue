@@ -272,59 +272,69 @@ const pinCurrentLocation = async () => {
 </script>
 
 <template>
-  <div v-if="currentDraft" class="flex flex-col h-screen bg-background">
-     <div class="p-4 border-b flex items-center gap-2 sticky top-0 bg-background z-10">
-        <Button variant="ghost" size="icon" @click="router.push('/app')">
-            <ArrowLeft class="w-5 h-5" />
-        </Button>
-        <div class="flex-1 min-w-0">
-             <div class="flex flex-col min-w-0">
-                <input 
-                   v-model="currentDraft.name"
-                   :readonly="isPaid"
-                   @input="onNameInput"
-                   class="bg-transparent font-bold text-lg w-full focus:outline-none"
-                   :class="{ 'cursor-default': isPaid }"
-                   :placeholder="t('split.namePlaceholder')"
-                />
-                <div
-                  v-if="placeAddressLine"
-                  class="text-xs text-muted-foreground mt-0.5 line-clamp-1"
-                  :title="placeAddressLine"
-                >
-                  {{ placeAddressLine }}
+  <div v-if="currentDraft" class="flex flex-col min-h-screen h-[100dvh] bg-background">
+     <Tabs v-model="activeTab" default-value="items" class="flex-1 flex flex-col min-h-0">
+        <div class="sticky top-0 bg-background z-10">
+            <div class="p-4 border-b flex items-center gap-2">
+                <Button variant="ghost" size="icon" @click="router.push('/app')">
+                    <ArrowLeft class="w-5 h-5" />
+                </Button>
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-col min-w-0">
+                        <input 
+                           v-model="currentDraft.name"
+                           :readonly="isPaid"
+                           @input="onNameInput"
+                           class="bg-transparent font-bold text-lg w-full focus:outline-none"
+                           :class="{ 'cursor-default': isPaid }"
+                           :placeholder="t('split.namePlaceholder')"
+                        />
+                        <div
+                          v-if="placeAddressLine"
+                          class="text-xs text-muted-foreground mt-0.5 line-clamp-1"
+                          :title="placeAddressLine"
+                        >
+                          {{ placeAddressLine }}
+                        </div>
+                    </div>
                 </div>
-             </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          :disabled="isPaid"
-          title="Buscar estabelecimento"
-          @click="isPlaceSearchOpen = true"
-        >
-          <Search class="w-5 h-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          :disabled="isPaid || isLocating"
-          :title="hasLocation ? 'Localização definida' : 'Marcar localização (GPS)'"
-          @click="pinCurrentLocation"
-        >
-          <Loader2 v-if="isLocating" class="w-5 h-5 animate-spin" />
-          <MapPin v-else class="w-5 h-5" :class="hasLocation ? 'text-primary' : ''" />
-        </Button>
-     </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :disabled="isPaid"
+                  title="Buscar estabelecimento"
+                  @click="isPlaceSearchOpen = true"
+                >
+                  <Search class="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :disabled="isPaid || isLocating"
+                  :title="hasLocation ? 'Localização definida' : 'Marcar localização (GPS)'"
+                  @click="pinCurrentLocation"
+                >
+                  <Loader2 v-if="isLocating" class="w-5 h-5 animate-spin" />
+                  <MapPin v-else class="w-5 h-5" :class="hasLocation ? 'text-primary' : ''" />
+                </Button>
+            </div>
 
-     <Dialog v-model:open="isPlaceSearchOpen">
-        <DialogContent class="sm:max-w-lg">
-            <DialogHeader>
-                <DialogTitle>Buscar estabelecimento</DialogTitle>
-                <DialogDescription>
-                    Pesquise um lugar e use como nome do rateio. Ao selecionar, salvamos também as coordenadas.
-                </DialogDescription>
-            </DialogHeader>
+            <TabsList class="grid w-full grid-cols-4 rounded-none h-12 border-b">
+                <TabsTrigger value="participants">{{ t('split.tabs.participants') }}</TabsTrigger>
+                <TabsTrigger value="items">{{ t('split.tabs.items') }}</TabsTrigger>
+                <TabsTrigger value="extras">{{ t('split.tabs.extras') }}</TabsTrigger>
+                <TabsTrigger value="review">{{ t('split.tabs.review') }}</TabsTrigger>
+            </TabsList>
+        </div>
+
+        <Dialog v-model:open="isPlaceSearchOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Buscar estabelecimento</DialogTitle>
+                    <DialogDescription>
+                        Pesquise um lugar e use como nome do rateio. Ao selecionar, salvamos também as coordenadas.
+                    </DialogDescription>
+                </DialogHeader>
 
             <div class="space-y-3 py-2">
                 <Input
@@ -422,29 +432,21 @@ const pinCurrentLocation = async () => {
                 <Button variant="secondary" @click="isPlaceSearchOpen = false">Fechar</Button>
             </DialogFooter>
         </DialogContent>
-     </Dialog>
+        </Dialog>
 
-     <Tabs v-model="activeTab" default-value="items" class="flex-1 flex flex-col overflow-hidden">
-        <TabsList class="grid w-full grid-cols-4 rounded-none h-12">
-            <TabsTrigger value="participants">{{ t('split.tabs.participants') }}</TabsTrigger>
-            <TabsTrigger value="items">{{ t('split.tabs.items') }}</TabsTrigger>
-            <TabsTrigger value="extras">{{ t('split.tabs.extras') }}</TabsTrigger>
-            <TabsTrigger value="review">{{ t('split.tabs.review') }}</TabsTrigger>
-        </TabsList>
-        
-        <div class="flex-1 overflow-y-auto p-4 pb-20">
-             <TabsContent value="participants">
+        <div class="flex-1 min-h-0 overflow-y-auto p-4 pb-20 overscroll-contain">
+            <TabsContent value="participants">
                 <ParticipantsTab />
-             </TabsContent>
-             <TabsContent value="items">
+            </TabsContent>
+            <TabsContent value="items">
                 <ItemsTab />
-             </TabsContent>
-             <TabsContent value="extras">
+            </TabsContent>
+            <TabsContent value="extras">
                 <ExtrasTab />
-             </TabsContent>
-             <TabsContent value="review">
+            </TabsContent>
+            <TabsContent value="review">
                 <ReviewTab :is-active="activeTab === 'review'" />
-             </TabsContent>
+            </TabsContent>
         </div>
      </Tabs>
   </div>

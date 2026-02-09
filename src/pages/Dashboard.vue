@@ -20,6 +20,26 @@ const router = useRouter()
 const myDrafts = computed(() => store.mySplits)
 const deletingId = ref<string | null>(null)
 
+const placeAddressLineFor = (draft: SplitDraft) => {
+    const display = draft.placeDisplayName?.trim() || ''
+    if (!display) return null
+
+    const nameCandidates = [draft.placeName?.trim(), draft.name?.trim()].filter(
+        (v): v is string => Boolean(v)
+    )
+
+    for (const prefix of nameCandidates) {
+        if (display === prefix) return null
+        const normalizedPrefix = `${prefix},`
+        if (display.startsWith(normalizedPrefix)) {
+            const rest = display.slice(normalizedPrefix.length).trim()
+            return rest || null
+        }
+    }
+
+    return display
+}
+
 const createNewSplit = async () => {
     try {
         const id = await store.createSplit(api)
@@ -83,8 +103,17 @@ onMounted(async () => {
         class="cursor-pointer hover:bg-accent transition-colors"
       >
         <CardHeader class="pb-2">
-            <CardTitle class="flex justify-between items-center text-lg">
-                <span class="truncate">{{ draft.name }}</span>
+            <CardTitle class="flex justify-between items-center text-lg gap-3">
+                <div class="min-w-0">
+                    <div class="truncate">{{ draft.name }}</div>
+                    <div
+                      v-if="placeAddressLineFor(draft)"
+                      class="text-xs text-muted-foreground font-normal mt-0.5 line-clamp-1"
+                      :title="placeAddressLineFor(draft) || undefined"
+                    >
+                      {{ placeAddressLineFor(draft) }}
+                    </div>
+                </div>
                 <span class="flex items-center gap-2 shrink-0">
                     <span class="text-xs text-muted-foreground font-normal">
                         {{ new Date(Number(draft.createdAt) * 1000).toLocaleDateString() }}
