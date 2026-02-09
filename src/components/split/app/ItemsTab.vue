@@ -161,7 +161,6 @@ const onConsumedSwitch = (itemId: string, checked: boolean) => {
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-sm text-muted-foreground">{{ t('items.whoConsumed') }}</span>
                         <div class="flex items-center gap-2 shrink-0">
-                            <span class="text-xs text-muted-foreground">{{ t('items.none') }}</span>
                             <Switch
                                 :model-value="isAllConsumers(item.id)"
                                 :disabled="isPaid || (store.draft?.participants.length ?? 0) === 0"
