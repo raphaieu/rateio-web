@@ -323,7 +323,8 @@ export const useSplitStore = defineStore('split', {
             }
             this.isSaving = true // Show loading immediately
             this.syncTimeoutId = setTimeout(() => {
-                this.syncItems(api)
+                // Avoid unhandled promise rejections (errors are stored in `this.error`)
+                this.syncItems(api).catch(() => {})
             }, 1000)
         },
 
@@ -346,6 +347,10 @@ export const useSplitStore = defineStore('split', {
                 if (!this.draft) return
                 this.isSaving = true
                 const revisionAtStart = this.itemsRevision
+
+                // Critical: guarantee participants are persisted before sending consumerIds.
+                // (Mobile devices can trigger item sync before participant sync completes.)
+                await this.ensureParticipantsSynced(api)
 
                 const itemsPayload = this.draft.items.map(item => {
                     const consumerIds = this.draft?.shares
@@ -375,7 +380,18 @@ export const useSplitStore = defineStore('split', {
                 await this.syncItemsInFlight
             } catch (e) {
                 console.error("Failed to sync items", e)
-                this.error = "Failed to save changes. Please try again."
+                const anyErr = e as any
+                const status = typeof anyErr?.status === 'number' ? anyErr.status : null
+                const reqId = anyErr?.requestId as string | undefined
+                const detailError = anyErr?.details?.error as string | undefined
+
+                if (status === 400 && detailError === 'Invalid consumerIds') {
+                    this.error = `Falha ao salvar: participantes ainda não sincronizados. Tente novamente em alguns segundos.${reqId ? ` (Req: ${reqId})` : ''}`
+                } else if (status) {
+                    this.error = `Falha ao salvar alterações (HTTP ${status}). Verifique sua conexão e tente novamente.${reqId ? ` (Req: ${reqId})` : ''}`
+                } else {
+                    this.error = `Falha ao salvar alterações. Verifique sua conexão e tente novamente.${reqId ? ` (Req: ${reqId})` : ''}`
+                }
                 throw e
             } finally {
                 this.isSaving = false
