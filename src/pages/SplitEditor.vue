@@ -335,11 +335,13 @@ const pinCurrentLocation = async () => {
         </div>
 
         <Dialog v-model:open="isPlaceSearchOpen">
-            <DialogContent class="sm:max-w-lg">
+            <DialogContent
+                class="sm:max-w-lg top-6 -translate-y-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[80dvh] overflow-y-auto"
+            >
                 <DialogHeader>
                     <DialogTitle>Buscar estabelecimento</DialogTitle>
                     <DialogDescription>
-                        Pesquise um lugar e use como nome do rateio. Ao selecionar, salvamos também as coordenadas.
+                        Pesquise um lugar e use como nome do rateio.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -349,40 +351,33 @@ const pinCurrentLocation = async () => {
                   placeholder="Ex: Bar do Zé, Restaurante, Padaria…"
                 />
 
-                <div v-if="hasLocation" class="rounded-md border p-3">
-                    <div class="text-sm font-medium">Sugestão pelo GPS</div>
-                    <div class="text-xs text-muted-foreground mt-1">
-                        Baseado nas coordenadas marcadas. Não depende do nome atual do rateio.
-                    </div>
+                <!-- Sugestão via GPS (compacta; melhor no mobile com teclado) -->
+                <div v-if="hasLocation && !placeQuery.trim()" class="text-xs text-muted-foreground flex items-center gap-2">
+                    <span class="shrink-0">Sugestão via GPS:</span>
 
-                    <div v-if="isLoadingGpsSuggestion" class="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                        <Loader2 class="w-4 h-4 animate-spin" /> Buscando sugestão…
-                    </div>
+                    <span v-if="isLoadingGpsSuggestion" class="flex items-center gap-1">
+                        <Loader2 class="w-3 h-3 animate-spin" />
+                        Buscando…
+                    </span>
 
-                    <div v-else-if="gpsSuggestion?.name || gpsSuggestion?.displayName" class="mt-2">
-                        <Button
-                          variant="secondary"
-                          class="w-full justify-start"
-                          @click="applyPlaceAsSplitName({
-                            provider: gpsSuggestion?.provider || 'nominatim',
-                            placeId: gpsSuggestion?.placeId ?? null,
-                            name: gpsSuggestion?.name ?? null,
-                            displayName: gpsSuggestion?.displayName ?? null,
-                            latitude: currentDraft?.latitude ?? null,
-                            longitude: currentDraft?.longitude ?? null
-                          })"
-                        >
-                          <Check class="w-4 h-4 mr-2" />
-                          {{ gpsSuggestion?.name || (gpsSuggestion?.displayName ? gpsSuggestion.displayName.split(',')[0] : 'Usar sugestão do GPS') }}
-                        </Button>
-                        <div v-if="gpsSuggestion?.displayName" class="text-xs text-muted-foreground mt-2 line-clamp-2">
-                            {{ gpsSuggestion.displayName }}
-                        </div>
-                    </div>
+                    <button
+                      v-else-if="gpsSuggestion?.name || gpsSuggestion?.displayName"
+                      type="button"
+                      class="text-foreground underline underline-offset-2 truncate text-left"
+                      :title="gpsSuggestion?.displayName || gpsSuggestion?.name || ''"
+                      @click="applyPlaceAsSplitName({
+                        provider: gpsSuggestion?.provider || 'nominatim',
+                        placeId: gpsSuggestion?.placeId ?? null,
+                        name: gpsSuggestion?.name ?? null,
+                        displayName: gpsSuggestion?.displayName ?? null,
+                        latitude: currentDraft?.latitude ?? null,
+                        longitude: currentDraft?.longitude ?? null
+                      })"
+                    >
+                      {{ gpsSuggestion?.name || (gpsSuggestion?.displayName ? gpsSuggestion.displayName.split(',')[0] : 'Usar sugestão do GPS') }}
+                    </button>
 
-                    <div v-else class="text-sm text-muted-foreground mt-2">
-                        Nenhuma sugestão encontrada para esse ponto.
-                    </div>
+                    <span v-else class="truncate">Nenhuma</span>
                 </div>
 
                 <div v-if="isSearchingPlaces" class="flex items-center gap-2 text-sm text-muted-foreground">
@@ -391,9 +386,9 @@ const pinCurrentLocation = async () => {
 
                 <div v-else class="space-y-2">
                     <Button
+                      v-if="placeQuery.trim()"
                       variant="secondary"
                       class="w-full justify-start"
-                      :disabled="!placeQuery.trim()"
                       @click="useTypedTextAsSplitName"
                     >
                       <Check class="w-4 h-4 mr-2" />
