@@ -326,23 +326,6 @@ const pinCurrentLocation = async () => {
                 </Button>
             </div>
 
-            <!-- Save status / error banner -->
-            <div v-if="saveError" class="border-b">
-              <div class="px-4 py-2 flex items-center justify-between gap-3 bg-amber-500/10 text-amber-900">
-                <div class="text-sm">
-                  {{ saveError }}
-                </div>
-                <Button variant="outline" size="sm" @click="store.syncItems(api)">
-                  Tentar salvar
-                </Button>
-              </div>
-            </div>
-            <div v-else-if="isSaving" class="border-b">
-              <div class="px-4 py-2 text-xs text-muted-foreground">
-                Salvando…
-              </div>
-            </div>
-
             <TabsList class="grid w-full grid-cols-4 rounded-none h-12 border-b">
                 <TabsTrigger value="participants">{{ t('split.tabs.participants') }}</TabsTrigger>
                 <TabsTrigger value="items">{{ t('split.tabs.items') }}</TabsTrigger>
@@ -473,5 +456,36 @@ const pinCurrentLocation = async () => {
             </TabsContent>
         </div>
      </Tabs>
+
+     <!-- Save status (fixed overlay; no layout shift) -->
+     <div
+        :class="[
+          'fixed inset-x-0 z-50 flex justify-center pointer-events-none',
+          activeTab === 'review' ? 'bottom-24' : 'bottom-6'
+        ]"
+     >
+        <div
+          v-if="saveError"
+          class="pointer-events-auto max-w-[92vw] w-fit rounded-full border bg-background shadow-sm px-3 py-2 flex items-center gap-3"
+        >
+          <div class="text-sm text-amber-900">
+            {{ saveError }}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-8 px-3"
+            @click="store.syncItems(api)"
+          >
+            Tentar salvar
+          </Button>
+        </div>
+        <div
+          v-else-if="isSaving"
+          class="max-w-[92vw] w-fit rounded-full border bg-background/90 backdrop-blur shadow-sm px-3 py-2 text-xs text-muted-foreground"
+        >
+          Salvando…
+        </div>
+     </div>
   </div>
 </template>
