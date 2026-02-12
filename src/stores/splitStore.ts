@@ -264,7 +264,7 @@ export const useSplitStore = defineStore('split', {
             await this.syncItems(api)
         },
 
-        async toggleShare(_api: ApiClient, itemId: string, participantId: string) {
+        async toggleShare(api: ApiClient, itemId: string, participantId: string) {
             if (!this.draft) return
 
             const idx = this.draft.shares.findIndex(s => s.itemId === itemId && s.participantId === participantId)
@@ -274,10 +274,11 @@ export const useSplitStore = defineStore('split', {
                 this.draft.shares.push({ itemId, participantId })
             }
             this.markItemsDirty()
-            // Apenas estado local; sync ao sair da aba Itens
+            // Mobile-safe: persist in background (debounced)
+            this.scheduleSyncItems(api)
         },
 
-        setAllShares(_api: ApiClient, itemId: string, participantIds: string[]) {
+        setAllShares(api: ApiClient, itemId: string, participantIds: string[]) {
             if (!this.draft) return
             const rest = this.draft.shares.filter(s => s.itemId !== itemId)
             const newShares = rest.concat(
@@ -285,7 +286,8 @@ export const useSplitStore = defineStore('split', {
             )
             this.draft.shares = newShares
             this.markItemsDirty()
-            // Sync apenas ao sair da aba Itens
+            // Mobile-safe: persist in background (debounced)
+            this.scheduleSyncItems(api)
         },
 
         async paySplit(api: ApiClient, topupCents: number = 0) {

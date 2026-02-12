@@ -40,12 +40,19 @@ onMounted(async () => {
 // Ao sair da aba Itens, uma única requisição com todo o estado (itens + seleções)
 watch(activeTab, (newTab, oldTab) => {
     if (oldTab === 'items' && newTab !== 'items') {
-        store.syncItems(api)
+        store.syncItems(api).catch(() => {
+            toast({
+                title: 'Falha ao salvar alterações',
+                description: 'Verifique sua conexão e tente novamente.',
+            })
+        })
     }
 })
 
 const currentDraft = computed(() => store.draft)
 const isPaid = computed(() => store.draft?.status === 'PAID')
+const saveError = computed(() => store.error)
+const isSaving = computed(() => store.isSaving)
 const hasLocation = computed(() => currentDraft.value?.latitude != null && currentDraft.value?.longitude != null)
 
 const placeAddressLine = computed<string | null>(() => {
@@ -317,6 +324,23 @@ const pinCurrentLocation = async () => {
                   <Loader2 v-if="isLocating" class="w-5 h-5 animate-spin" />
                   <MapPin v-else class="w-5 h-5" :class="hasLocation ? 'text-primary' : ''" />
                 </Button>
+            </div>
+
+            <!-- Save status / error banner -->
+            <div v-if="saveError" class="border-b">
+              <div class="px-4 py-2 flex items-center justify-between gap-3 bg-amber-500/10 text-amber-900">
+                <div class="text-sm">
+                  {{ saveError }}
+                </div>
+                <Button variant="outline" size="sm" @click="store.syncItems(api)">
+                  Tentar salvar
+                </Button>
+              </div>
+            </div>
+            <div v-else-if="isSaving" class="border-b">
+              <div class="px-4 py-2 text-xs text-muted-foreground">
+                Salvando…
+              </div>
             </div>
 
             <TabsList class="grid w-full grid-cols-4 rounded-none h-12 border-b">
