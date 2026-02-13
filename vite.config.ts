@@ -12,8 +12,8 @@ function htmlInjectEnv(mode: string) {
       const env = loadEnv(mode, process.cwd(), '')
       const appUrl = env.VITE_APP_URL || 'https://rateio.ckao.in'
       const siteName = 'Rateio Justo'
-      const title = 'Rateio Justo — Divida contas sem constrangimento'
-      const description = 'Cada pessoa paga exatamente o que consumiu. Sem planilha, sem calculadora, sem cobrança manual. O app vira o neutro da mesa.'
+      const title = 'Sentou, sorriu... o Rateio Justo dividiu!'
+      const description = 'Cada pessoa paga exatamente o que consumiu. Nunca mais abra a calculadora na mesa.'
       const ogImage = `${appUrl.replace(/\/$/, '')}/og-image.jpg`
 
       return html
