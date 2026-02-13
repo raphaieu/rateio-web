@@ -12,8 +12,8 @@ function htmlInjectEnv(mode: string) {
       const env = loadEnv(mode, process.cwd(), '')
       const appUrl = env.VITE_APP_URL || 'https://rateio.ckao.in'
       const siteName = 'Rateio Justo'
-      const title = 'Sentou, sorriu... o Rateio Justo dividiu!'
-      const description = 'Cada pessoa paga exatamente o que consumiu. Nunca mais abra a calculadora na mesa.'
+      const title = 'Sentou, sorriu — o Rateio Justo dividiu.'
+      const description = 'Cada um paga o seu. Nunca mais abra a calculadora na mesa.'
       const ogImage = `${appUrl.replace(/\/$/, '')}/og-image.jpg`
 
       return html
@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: 'Rateio Justo',
         short_name: 'Rateio',
-        description: 'Divida contas sem dor de cabeça.',
+        description: 'Divida contas sem tretas.',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
