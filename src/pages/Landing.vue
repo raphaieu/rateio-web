@@ -102,9 +102,9 @@ const problemScript = [
 ]
 
 const steps = [
-  { num: '01', icon: UserPlus, title: 'Crie a mesa', desc: 'Adicione as pessoas que estão na conta' },
-  { num: '02', icon: ListChecks, title: 'Marque os itens', desc: 'Selecione quem consumiu o quê' },
-  { num: '03', icon: Sparkles, title: 'Pronto', desc: 'O app calcula tudo automaticamente' },
+  { num: '01', icon: UserPlus, title: 'Crie o Rateio', desc: 'Adicione as pessoas que estão no rolê' },
+  { num: '02', icon: ListChecks, title: 'Insira os itens', desc: 'Selecione quem consumiu o quê' },
+  { num: '03', icon: Sparkles, title: 'Revise a conta', desc: 'O app calcula tudo automaticamente' },
 ]
 
 const benefits = [
@@ -123,9 +123,9 @@ const useCases = [
 ]
 
 const testimonials = [
-  { text: 'Nunca mais tive aquele momento constrangedor de pedir o pix depois.', name: 'Em breve' },
-  { text: 'A galera do churrasco já nem discute mais quem deve quanto.', name: 'Em breve' },
-  { text: 'Uso em toda viagem. Cada um vê o que deve no final, sem drama.', name: 'Em breve' },
+  { text: 'Nunca mais tive aquele momento constrangedor de pedir o pix depois.', name: 'Victor Martins' },
+  { text: 'A galera do churrasco já nem discute mais quem deve quanto.', name: 'Vila Jr.' },
+  { text: 'Uso em toda viagem. Cada um vê o que deve no final, sem drama.', name: 'Hudson Nepomuceno' },
 ]
 </script>
 
@@ -222,7 +222,7 @@ const testimonials = [
             class="text-[3rem] sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-emerald-400 leading-[1.05] mt-3 opacity-0 animate-fade-in-up"
             style="animation-delay: 300ms"
           >
-            É política.
+            é chatão.
           </p>
         </div>
 
@@ -243,7 +243,7 @@ const testimonials = [
 
         <!-- Closing hook -->
         <div class="mt-10 opacity-0 animate-fade-in-up" style="animation-delay: 700ms">
-          <p class="text-zinc-500 text-lg mb-8">No final ninguém fica confortável.</p>
+          <p class="text-zinc-500 text-lg mb-8">e no final ninguém fica confortável.</p>
           <p class="text-2xl md:text-3xl font-bold text-white mb-2">
             O Rateio Justo resolve isso em <span class="text-emerald-400">30 segundos</span>.
           </p>
@@ -343,10 +343,10 @@ const testimonials = [
           <p class="text-xl md:text-2xl font-bold text-zinc-900">
             Não é sobre dinheiro.
             <br />
-            É sobre evitar parecer <span class="text-emerald-600">chato</span>.
+            É sobre evitar parecer ser <span class="text-emerald-600">chato</span>.
           </p>
           <p class="text-zinc-500 mt-4 text-lg">
-            Por isso as pessoas aceitam pagar errado.
+            e por isso as pessoas aceitam pagar errado.
           </p>
         </div>
       </div>
@@ -405,9 +405,9 @@ const testimonials = [
             show('solution') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
           ]"
         >
-          <span class="bg-white px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-medium text-zinc-500">Sem planilha</span>
-          <span class="bg-white px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-medium text-zinc-500">Sem calculadora</span>
-          <span class="bg-white px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-medium text-zinc-500">Sem cobrança manual</span>
+          <span class="bg-white px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-medium text-zinc-500">sem calculadora</span>
+          <span class="bg-white px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-medium text-zinc-500">sem conta de cabeça</span>          
+          <span class="bg-white px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-medium text-zinc-500">sem rabiscar no guardanapo</span>
         </div>
 
         <p
@@ -416,7 +416,7 @@ const testimonials = [
             show('solution') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
           ]"
         >
-          O app vira o <strong class="text-zinc-700">neutro da mesa</strong>.
+          Sentou. Sorriu... o <strong class="text-zinc-700">Rateio Justo</strong> dividiu.
         </p>
       </div>
     </section>
@@ -449,7 +449,7 @@ const testimonials = [
             show('benefits') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
           ]"
         >
-          A conta fecha e o clima <span class="text-emerald-600">continua</span>.
+          A conta fecha e a amizade <span class="text-emerald-600">continua</span>.
         </p>
       </div>
     </section>
