@@ -32,12 +32,6 @@ const whatsappHref = computed(() => {
   return `https://wa.me/${digits}?text=${encodeURIComponent(whatsappText)}`
 })
 
-// Navbar scroll state
-const scrolled = ref(false)
-const handleScroll = () => {
-  scrolled.value = window.scrollY > 60
-}
-
 // Scroll-reveal system
 const revealed = ref(new Set<string>())
 let observer: IntersectionObserver | null = null
@@ -49,9 +43,6 @@ onMounted(() => {
       description: 'Entre ou cadastre-se para usar o dashboard e criar rateios.',
     })
   }
-
-  window.addEventListener('scroll', handleScroll, { passive: true })
-  handleScroll()
 
   nextTick(() => {
     observer = new IntersectionObserver(
@@ -70,7 +61,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
   observer?.disconnect()
 })
 
@@ -135,51 +125,29 @@ const testimonials = [
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- NAVBAR                                                      -->
     <!-- ═══════════════════════════════════════════════════════════ -->
-    <header
-      :class="[
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        scrolled
-          ? 'bg-white/95 backdrop-blur-lg shadow-sm border-b border-zinc-200'
-          : 'bg-zinc-950/40 backdrop-blur-sm',
-      ]"
-    >
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-sm border-b border-zinc-200">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <div class="flex items-center">
           <img
             src="/logo.svg"
             alt="Rateio Justo"
-            :class="[
-              'h-10 w-auto object-contain shrink-0 transition-all duration-300',
-              !scrolled && 'brightness-0 invert',
-            ]"
+            class="h-10 w-auto object-contain shrink-0"
           />
         </div>
         <div class="flex items-center gap-2 sm:gap-4">
           <router-link to="/sobre" class="hidden sm:block">
-            <Button
-              variant="ghost"
-              size="sm"
-              :class="scrolled ? 'text-zinc-600 hover:text-zinc-900' : 'text-zinc-300 hover:text-white hover:bg-white/10'"
-            >
+            <Button variant="ghost" size="sm" class="text-zinc-600 hover:text-zinc-900">
               Sobre
             </Button>
           </router-link>
           <router-link to="/tech" class="hidden sm:block">
-            <Button
-              variant="ghost"
-              size="sm"
-              :class="scrolled ? 'text-zinc-600 hover:text-zinc-900' : 'text-zinc-300 hover:text-white hover:bg-white/10'"
-            >
+            <Button variant="ghost" size="sm" class="text-zinc-600 hover:text-zinc-900">
               Tech
             </Button>
           </router-link>
           <SignedOut>
             <SignInButton mode="modal">
-              <Button
-                variant="ghost"
-                size="sm"
-                :class="scrolled ? 'text-zinc-600 hover:text-zinc-900' : 'text-zinc-300 hover:text-white hover:bg-white/10'"
-              >
+              <Button variant="ghost" size="sm" class="text-zinc-600 hover:text-zinc-900">
                 Entrar
               </Button>
             </SignInButton>
