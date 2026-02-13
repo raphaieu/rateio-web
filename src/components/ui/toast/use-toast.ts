@@ -4,6 +4,7 @@ import { computed, ref } from "vue"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
+const TOAST_AUTO_DISMISS_MS = 2000
 
 export type StringOrVNode
   = | string
@@ -56,6 +57,7 @@ interface State {
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+const autoDismissTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 function addToRemoveQueue(toastId: string) {
   if (toastTimeouts.has(toastId))
@@ -78,9 +80,20 @@ const state = ref<State>({
 
 function dispatch(action: Action) {
   switch (action.type) {
-    case actionTypes.ADD_TOAST:
+    case actionTypes.ADD_TOAST: {
       state.value.toasts = [action.toast, ...state.value.toasts].slice(0, TOAST_LIMIT)
+      // Auto-dismiss após 2s para todas as notificações
+      const id = action.toast.id
+      autoDismissTimeouts.get(id) && clearTimeout(autoDismissTimeouts.get(id)!)
+      autoDismissTimeouts.set(
+        id,
+        setTimeout(() => {
+          autoDismissTimeouts.delete(id)
+          dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
+        }, TOAST_AUTO_DISMISS_MS)
+      )
       break
+    }
 
     case actionTypes.UPDATE_TOAST:
       state.value.toasts = state.value.toasts.map(t =>
@@ -92,9 +105,16 @@ function dispatch(action: Action) {
       const { toastId } = action
 
       if (toastId) {
+        const t = autoDismissTimeouts.get(toastId)
+        if (t) {
+          clearTimeout(t)
+          autoDismissTimeouts.delete(toastId)
+        }
         addToRemoveQueue(toastId)
       }
       else {
+        autoDismissTimeouts.forEach((t) => clearTimeout(t))
+        autoDismissTimeouts.clear()
         state.value.toasts.forEach((toast) => {
           addToRemoveQueue(toast.id)
         })
