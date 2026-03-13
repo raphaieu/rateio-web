@@ -256,6 +256,17 @@ export const useSplitStore = defineStore('split', {
             await this.syncItems(api)
         },
 
+        async updateItem(api: ApiClient, itemId: string, updates: { name?: string, amountCents?: number }) {
+            if (!this.draft) return
+            const item = this.draft.items.find(i => i.id === itemId)
+            if (item) {
+                if (updates.name !== undefined) item.name = updates.name
+                if (updates.amountCents !== undefined) item.amountCents = updates.amountCents
+                this.markItemsDirty()
+                await this.scheduleSyncItems(api)
+            }
+        },
+
         async deleteItem(api: ApiClient, itemId: string) {
             if (!this.draft) return
             this.draft.items = this.draft.items.filter(i => i.id !== itemId)
@@ -324,7 +335,7 @@ export const useSplitStore = defineStore('split', {
             this.isSaving = true // Show loading immediately
             this.syncTimeoutId = setTimeout(() => {
                 // Avoid unhandled promise rejections (errors are stored in `this.error`)
-                this.syncItems(api).catch(() => {})
+                this.syncItems(api).catch(() => { })
             }, 1000)
         },
 
@@ -402,14 +413,12 @@ export const useSplitStore = defineStore('split', {
 
         // --- Extras ---
 
-        async addExtra(api: ApiClient, extra: Partial<Extra>) {
+        async addExtra(_api: ApiClient, _extra: Partial<Extra>) {
             if (!this.draft) return
-            console.log(api, extra)
         },
 
-        async syncExtras(api: ApiClient) {
+        async syncExtras(_api: ApiClient) {
             if (!this.draft) return
-            console.log(api)
         },
 
         async computeReview(api: ApiClient) {

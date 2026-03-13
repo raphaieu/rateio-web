@@ -23,7 +23,11 @@ export function useApi(options: UseApiOptions = {}) {
             const token = await getToken.value();
             const headers = new Headers(init.headers || {});
             headers.set("Authorization", `Bearer ${token}`);
-            if (init.body) headers.set("Content-Type", "application/json");
+
+            // Set JSON content type only if body is present and not FormData
+            if (init.body && !(init.body instanceof FormData)) {
+                headers.set("Content-Type", "application/json");
+            }
 
             return await apiFetch<T>(path, { ...init, headers });
         } finally {
@@ -31,14 +35,19 @@ export function useApi(options: UseApiOptions = {}) {
         }
     }
 
+    const prepareBody = (body: any) => {
+        if (body instanceof FormData) return body;
+        return body ? JSON.stringify(body) : undefined;
+    };
+
     return {
         get: <T>(path: string) => authFetch<T>(path),
         post: <T>(path: string, body?: any) =>
-            authFetch<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
+            authFetch<T>(path, { method: "POST", body: prepareBody(body) }),
         put: <T>(path: string, body?: any) =>
-            authFetch<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
+            authFetch<T>(path, { method: "PUT", body: prepareBody(body) }),
         patch: <T>(path: string, body?: any) =>
-            authFetch<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+            authFetch<T>(path, { method: "PATCH", body: prepareBody(body) }),
         delete: <T>(path: string) =>
             authFetch<T>(path, { method: "DELETE" }),
     };

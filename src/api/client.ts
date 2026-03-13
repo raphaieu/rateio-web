@@ -34,8 +34,11 @@ export async function apiFetch<T>(
 
     const headers = new Headers(init.headers || {});
     if (!headers.has("x-request-id")) headers.set("x-request-id", genRequestId());
-    // só seta content-type se tiver body (evita edge-cases)
-    if (init.body) headers.set("Content-Type", "application/json");
+
+    // Only set application/json if not already set and body is NOT FormData
+    if (init.body && !headers.has("Content-Type") && !(init.body instanceof FormData)) {
+        headers.set("Content-Type", "application/json");
+    }
 
     const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
 
