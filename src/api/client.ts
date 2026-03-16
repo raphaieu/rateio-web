@@ -23,6 +23,15 @@ async function parseError(res: Response): Promise<ApiError> {
     };
 }
 
+function getGuestId(): string {
+    let gid = localStorage.getItem("rateio_guest_id");
+    if (!gid) {
+        gid = genRequestId();
+        localStorage.setItem("rateio_guest_id", gid);
+    }
+    return gid;
+}
+
 export async function apiFetch<T>(
     path: string,
     init: RequestInit = {}
@@ -34,6 +43,12 @@ export async function apiFetch<T>(
 
     const headers = new Headers(init.headers || {});
     if (!headers.has("x-request-id")) headers.set("x-request-id", genRequestId());
+
+    // Always include guest id if not signed in (managed by caller or here?)
+    // Actually better to include it always as a fallback, backend prioritizes Authorization.
+    if (!headers.has("x-guest-id")) {
+        headers.set("x-guest-id", getGuestId());
+    }
 
     // Only set application/json if not already set and body is NOT FormData
     if (init.body && !headers.has("Content-Type") && !(init.body instanceof FormData)) {

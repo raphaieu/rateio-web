@@ -14,15 +14,13 @@ export function useApi(options: UseApiOptions = {}) {
     const ui = useUiStore();
 
     async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-        if (!isSignedIn.value) {
-            throw { status: 401, message: "Not signed in" };
-        }
-
         if (!silent) ui.startRequest();
         try {
-            const token = await getToken.value();
+            const token = isSignedIn.value ? await getToken.value() : null;
             const headers = new Headers(init.headers || {});
-            headers.set("Authorization", `Bearer ${token}`);
+            if (token) {
+                headers.set("Authorization", `Bearer ${token}`);
+            }
 
             // Set JSON content type only if body is present and not FormData
             if (init.body && !(init.body instanceof FormData)) {

@@ -13,6 +13,7 @@ const router = createRouter({
         { path: '/tech', component: Tech },
         { path: '/app', component: Dashboard, meta: { requiresAuth: true } },
         { path: '/app/splits/:id', component: SplitEditor, meta: { requiresAuth: true } },
+        { path: '/v2', component: () => import('@/pages/OnboardingV2.vue') },
         // Public route stub
         { path: '/p/:slug', component: () => import('@/pages/PublicSplit.vue') }
     ]

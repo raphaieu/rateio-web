@@ -223,14 +223,14 @@ const testimonials = [
         <!-- CTA -->
         <div class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-fade-in-up" style="animation-delay: 900ms">
           <SignedOut>
-            <SignUpButton mode="modal">
+            <router-link to="/v2">
               <Button
                 size="lg"
                 class="h-14 px-10 text-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-white border-0 rounded-full shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:scale-[1.02] w-full sm:w-auto"
               >
                 Começar agora <ArrowRight class="ml-2 h-5 w-5" />
               </Button>
-            </SignUpButton>
+            </router-link>
             <SignInButton mode="modal">
               <Button
                 variant="outline"
