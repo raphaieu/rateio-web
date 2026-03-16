@@ -61,11 +61,17 @@ const finish = () => {
   router.push('/app')
 }
 
+const reviewTab = ref<any>(null)
+
 const canGoNext = computed(() => {
     if (step.value === 1) return (store.draft?.participants.length ?? 0) >= 1
     if (step.value === 2) return (store.draft?.items.length ?? 0) >= 1
     return true
 })
+
+const formatCurrency = (cents: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+}
 
 </script>
 
@@ -117,7 +123,7 @@ const canGoNext = computed(() => {
             <h2 class="text-2xl font-black text-zinc-900 mb-2">Quase lá!</h2>
             <p class="text-zinc-500">Confira o resumo e veja quanto cada um deve.</p>
           </div>
-          <ReviewTab :is-active="step === 3" />
+            <ReviewTab ref="reviewTab" :is-active="step === 3" hide-actions />
         </div>
       </div>
     </main>
@@ -133,13 +139,31 @@ const canGoNext = computed(() => {
         >
           Próximo <ArrowRight class="ml-2 w-5 h-5" />
         </Button>
-        <Button 
-            v-else
-            class="flex-1 h-12 text-lg font-bold bg-zinc-900 hover:bg-zinc-800 text-white"
-            @click="finish"
-        >
-          Finalizar <CheckCircle2 class="ml-2 w-5 h-5" />
-        </Button>
+
+        <template v-else>
+          <!-- Se estiver no passo 3, o botão depende do status do pagamento -->
+          <Button 
+              v-if="store.draft?.status !== 'PAID'"
+              class="flex-1 h-12 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white"
+              :disabled="reviewTab?.isPaying"
+              @click="reviewTab?.handlePay()"
+          >
+            <Loader2 v-if="reviewTab?.isPaying" class="mr-2 w-5 h-5 animate-spin" />
+            <span v-if="reviewTab?.isPaying">Processando...</span>
+            <span v-else>
+              Desbloquear valores
+              <span v-if="reviewTab?.platformFeeCents > 0" class="ml-1 opacity-90">({{ formatCurrency(reviewTab.platformFeeCents) }})</span>
+            </span>
+          </Button>
+
+          <Button 
+              v-else
+              class="flex-1 h-12 text-lg font-bold bg-zinc-900 hover:bg-zinc-800 text-white"
+              @click="finish"
+          >
+            Finalizar <CheckCircle2 class="ml-2 w-5 h-5" />
+          </Button>
+        </template>
       </div>
     </footer>
   </div>

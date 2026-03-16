@@ -10,7 +10,13 @@ import { useApi } from '@/api/useApi'
 import { useI18n } from 'vue-i18n'
 import { useClipboard, useDebounceFn, useIntervalFn } from '@vueuse/core'
 
-const props = withDefaults(defineProps<{ isActive?: boolean }>(), { isActive: false })
+const props = withDefaults(defineProps<{ 
+    isActive?: boolean,
+    hideActions?: boolean
+}>(), { 
+    isActive: false,
+    hideActions: false
+})
 
 const { t } = useI18n()
 const { user } = useUser()
@@ -32,6 +38,13 @@ const isPaid = computed(() => draft.value?.status === 'PAID')
 const isDev = import.meta.env.DEV
 // Em dev, não travar o fluxo por pagamento: exibir valores direto
 const isUnlocked = computed(() => isPaid.value || isDev)
+
+defineExpose({
+    handlePay: () => handlePay(),
+    isPaying,
+    isPaid,
+    platformFeeCents: computed(() => platformFeeCents.value)
+})
 
 // Polling: quando webhook marca PAID, atualiza o split; fechamos a modal e exibimos os valores (silent = sem loader global)
 const { pause, resume } = useIntervalFn(async () => {
@@ -270,7 +283,7 @@ const showSimulatePayment = computed(() => {
           </div>
 
           <!-- Actions -->
-          <div class="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
+          <div v-if="!hideActions" class="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
                <Button
                   v-if="isDev"
                   class="flex-1"
