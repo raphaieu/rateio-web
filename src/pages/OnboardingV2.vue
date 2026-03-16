@@ -5,9 +5,6 @@ import { useSplitStore } from '@/stores/splitStore'
 import { useApi } from '@/api/useApi'
 import { Button } from '@/components/ui/button'
 import { 
-  UserPlus, 
-  ListChecks, 
-  Sparkles, 
   ArrowRight, 
   ArrowLeft,
   Loader2,
