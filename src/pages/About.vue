@@ -49,19 +49,31 @@ import { ArrowLeft } from 'lucide-vue-next'
       <section class="space-y-3 mb-10">
         <h2 class="text-xl font-bold">Status atual</h2>
         <p class="text-muted-foreground leading-relaxed">
-          Este é um MVP em evolução. A prioridade é entregar o essencial com uma experiência rápida no celular e ir melhorando com o uso real.
-          Já está disponível a <span class="font-medium text-foreground">geolocalização para o nome do rateio</span>: você pode usar o GPS para sugerir o nome do estabelecimento ou buscar um lugar por texto e aplicar como nome do rateio, com coordenadas e metadados salvos para uso futuro (ex.: mapa, histórico por lugar).
+          O Rateio Justo está evoluindo rápido! Já superamos o MVP inicial e agora contamos com um ecossistema completo para o seu rolê. 
+          Implementamos o <span class="font-medium text-foreground">Onboarding V2</span>, um fluxo guiado de 3 passos que torna a criação do rateio automática e intuitiva. 
+          Também já aceitamos <span class="font-medium text-foreground">pagamentos via PIX</span> (integração real com Mercado Pago) e temos um sistema de <span class="font-medium text-foreground">precificação dinâmica Inteligente</span> para cobrir os custos de IA.
         </p>
+      </section>
+
+      <section class="space-y-3 mb-10">
+        <h2 class="text-xl font-bold">O que já entregamos</h2>
+        <ul class="list-disc pl-5 text-muted-foreground space-y-2">
+          <li><span class="font-medium text-foreground">Onboarding V2</span>: Fluxo simplificado (Pessoas -> Itens -> Revisão).</li>
+          <li><span class="font-medium text-foreground">Pagamento via PIX</span>: Desbloqueio imediato dos valores após confirmação.</li>
+          <li><span class="font-medium text-foreground">Scanear nota fiscal (OCR)</span>: Capture a conta com a câmera e a IA identifica os itens automaticamente.</li>
+          <li><span class="font-medium text-foreground">Ditado por voz</span>: "Uma cerveja para o João e uma porção para todos" — e a IA processa o comando.</li>
+          <li><span class="font-medium text-foreground">Recibo Público</span>: Link compartilhável para que todos confiram os cálculos em tempo real.</li>
+          <li><span class="font-medium text-foreground">Geolocalização</span>: Sugestão de nome do rateio baseada no lugar onde você está.</li>
+          <li><span class="font-medium text-foreground">Identidade Persistente</span>: Seus rateios ficam vinculados ao seu navegador, sem precisar logar.</li>
+        </ul>
       </section>
 
       <section class="space-y-3 mb-10">
         <h2 class="text-xl font-bold">O que vem por aí</h2>
         <ul class="list-disc pl-5 text-muted-foreground space-y-2">
-          <li><span class="font-medium text-foreground">Geolocalização do rateio</span>: já disponível — GPS e busca de lugares para nome do rateio; evoluir para mapa, histórico por estabelecimento e filtros por local.</li>
-          <li><span class="font-medium text-foreground">Scanear a conta (OCR)</span>: tirar uma foto da nota e o app sugerir os itens automaticamente.</li>
-          <li><span class="font-medium text-foreground">Ditado por voz</span>: narrar os itens e o app transcrever/preencher automaticamente.</li>
-          <li><span class="font-medium text-foreground">Página pública do rateio</span>: compartilhar um link read-only para conferência.</li>
-          <li><span class="font-medium text-foreground">Melhorias de extras</span>: taxa de serviço, descontos, couverts e alocações.</li>
+          <li><span class="font-medium text-foreground">Integração com Contatos</span>: Buscar pessoas direto da sua agenda.</li>
+          <li><span class="font-medium text-foreground">Histórico e Analytics</span>: Dashboard detalhado para usuários logados.</li>
+          <li><span class="font-medium text-foreground">Divisão Avançada</span>: Divisão por peso, ml ou customizada por item.</li>
         </ul>
       </section>
 

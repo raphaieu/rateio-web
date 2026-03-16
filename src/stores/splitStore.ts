@@ -131,6 +131,23 @@ export const useSplitStore = defineStore('split', {
             }
         },
 
+        async fetchPublicSplit(api: ApiClient, id: string) {
+            this.isLoading = true
+            this.error = null
+            try {
+                const data = await api.get<SplitDraft>(`/splits/${id}/public`)
+                this.draft = data
+                // Not setting currentSplitId here to avoid overriding owner/guest session
+                return data
+            } catch (e: any) {
+                console.error(e)
+                this.error = "Comprovante não encontrado"
+                throw e
+            } finally {
+                this.isLoading = false
+            }
+        },
+
         async updateSplit(api: ApiClient, updates: {
             name?: string;
             latitude?: number | null;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSplitStore } from '@/stores/splitStore'
 import { Button } from '@/components/ui/button'
 import { SignedIn, SignedOut, SignInButton, SignUpButton, useAuth } from '@clerk/vue'
 import {
@@ -21,6 +22,7 @@ import { toast } from '@/components/ui/toast/use-toast'
 
 const route = useRoute()
 const router = useRouter()
+const store = useSplitStore()
 const { isSignedIn, isLoaded } = useAuth()
 
 const whatsappNumberRaw = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? ''
@@ -45,6 +47,12 @@ onMounted(() => {
   }
 
   nextTick(() => {
+    // Se houver um rateio ativo no localstorage que já foi pago, limpar a sessão
+    if (store.currentSplitId && store.draft?.status === 'PAID') {
+        localStorage.removeItem('rateio-current-split-id')
+        store.currentSplitId = null
+    }
+
     observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

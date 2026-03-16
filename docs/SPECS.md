@@ -27,22 +27,19 @@ Implementar a interface mobile-first do MVP, consumindo a API do Rateio Justo, c
 ---
 
 ## 3. Rotas
-- /
-- /new
-- /s/:id/participants
-- /s/:id/items
-- /s/:id/extras
-- /s/:id/review
-- /s/:id/pay
-- /p/:slug
+- `/`: Landing & Dashboard
+- `/v2`: Onboarding V2 (3-step flow)
+- `/app/splits/:id`: Split Editor
+- `/p/:slug`: Recibo Público
 
 ---
 
 ## 4. Telas
 
-### Criar Rateio
-- Nome (opcional). Suporte a **geolocalização para o nome**: GPS (reverse geocoding) e busca de lugares por texto; ao escolher um lugar, aplica nome + coordenadas + metadados (placeProvider, placeId, placeName, placeDisplayName) no split.
-- Quantidade de pessoas
+### Onboarding V2
+- Passo 1: Participantes (Nomes manuais ou via Voz/Transcrição)
+- Passo 2: Itens (Manual, OCR Câmera ou Voz)
+- Passo 3: Revisão & Pagamento
 
 ### Participantes
 - Lista editável

@@ -39,12 +39,6 @@ const isDev = import.meta.env.DEV
 // Em dev, não travar o fluxo por pagamento: exibir valores direto
 const isUnlocked = computed(() => isPaid.value || isDev)
 
-defineExpose({
-    handlePay: () => handlePay(),
-    isPaying,
-    isPaid,
-    platformFeeCents: computed(() => platformFeeCents.value)
-})
 
 // Polling: quando webhook marca PAID, atualiza o split; fechamos a modal e exibimos os valores (silent = sem loader global)
 const { pause, resume } = useIntervalFn(async () => {
@@ -162,6 +156,10 @@ const handlePay = async () => {
     if (!draft.value) return
     isPaying.value = true
     try {
+        if (isDev) {
+            await handleMarkAsPaid()
+            return
+        }
         const res = await store.paySplit(api)
         if (res.status === 'PENDING') {
             paymentData.value = {
@@ -198,6 +196,14 @@ const showSimulatePayment = computed(() => {
     if (isDev) return true
     const email = user.value?.primaryEmailAddress?.emailAddress ?? ''
     return email === 'rapha@raphael-martins.com'
+})
+
+defineExpose({
+    handlePay: () => handlePay(),
+    isPaying,
+    isPaid,
+    errors,
+    platformFeeCents: computed(() => platformFeeCents.value)
 })
 
 </script>

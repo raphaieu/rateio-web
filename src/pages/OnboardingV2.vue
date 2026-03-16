@@ -55,8 +55,10 @@ const prevStep = () => {
 
 const finish = () => {
   if (store.draft?.status === 'PAID') {
-    localStorage.removeItem('rateio_guest_id')
+    const splitId = store.draft.id
     store.currentSplitId = null
+    router.push(`/p/${splitId}`)
+    return
   }
   router.push('/app')
 }
@@ -145,7 +147,7 @@ const formatCurrency = (cents: number) => {
           <Button 
               v-if="store.draft?.status !== 'PAID'"
               class="flex-1 h-12 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white"
-              :disabled="reviewTab?.isPaying"
+              :disabled="reviewTab?.isPaying || (reviewTab?.errors?.length ?? 0) > 0"
               @click="reviewTab?.handlePay()"
           >
             <Loader2 v-if="reviewTab?.isPaying" class="mr-2 w-5 h-5 animate-spin" />
