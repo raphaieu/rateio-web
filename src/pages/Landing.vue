@@ -189,16 +189,16 @@ const testimonials = [
         <!-- Headline -->
         <div class="mb-10">
           <h1
-            class="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1] opacity-0 animate-fade-in-up"
+            class="text-[2.0rem] sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1] opacity-0 animate-fade-in-up"
             style="animation-delay: 100ms"
           >
-            Dividir conta não é matemática.
+            Dividir a conta igual não é
           </h1>
           <p
             class="text-[3rem] sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-emerald-400 leading-[1.05] mt-3 opacity-0 animate-fade-in-up"
             style="animation-delay: 300ms"
           >
-            é chatão.
+            dividir justo.
           </p>
         </div>
 

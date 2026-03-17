@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, useTemplateRef } from 'vue'
+import { ref, computed } from 'vue'
 import { useSplitStore } from '@/stores/splitStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +25,7 @@ const newItemName = ref('')
 const newItemAmount = ref(0)
 const isAdding = ref(false)
 const isProcessingIA = ref(false)
-const nameInput = useTemplateRef('name-input')
+const showManualEntry = ref(false)
 const fileInput = useTplRef<HTMLInputElement>('file-input')
 
 const { isRecording, startRecording, stopRecording } = useAudioRecorder()
@@ -116,15 +116,7 @@ const addItem = async () => {
         await store.addItem(api, newItemName.value, newItemAmount.value)
         newItemName.value = ''
         newItemAmount.value = 0
-        // Focus back on name input for rapid entry
-        nextTick(() => {
-             const el = nameInput.value?.$el as HTMLInputElement | undefined
-             if (el && typeof el.focus === 'function') {
-                 el.focus()
-             } else if (nameInput.value && '$el' in nameInput.value) {
-                 (nameInput.value.$el as HTMLElement).focus()
-             }
-        })
+        // No focus back if we are in mobile/manual mode to avoid keyboard jumping if user wants to close
     } finally {
         isAdding.value = false
     }
@@ -198,12 +190,12 @@ const saveEdit = async () => {
         <p class="text-sm text-amber-800 dark:text-amber-200">{{ t('split.lockedMessage') }}</p>
      </div>
 
-     <!-- Quick Add Form (oculto quando já pago) -->
-     <Card v-if="!isPaid" class="bg-muted/50 border-dashed">
-        <CardContent class="p-4 space-y-3">
-             <div class="flex items-center justify-between">
-                <div class="text-sm text-muted-foreground font-medium">Adicionar Item</div>
-                <div class="flex items-center gap-2">
+     <!-- Quick Add Form (Prioridade IA) -->
+     <Card v-if="!isPaid" class="bg-card shadow-sm border-2 border-primary/10 overflow-hidden">
+        <CardContent class="p-6">
+             <div class="space-y-6">
+                <!-- Seção IA: Grande e chamativa -->
+                <div class="grid grid-cols-2 gap-4">
                     <input 
                         ref="file-input" 
                         type="file" 
@@ -213,50 +205,76 @@ const saveEdit = async () => {
                         @change="onFileChange" 
                     />
                     <Button
-                        variant="outline"
-                        size="icon"
-                        class="h-9 w-9"
-                        :class="{ 'opacity-50 pointer-events-none': isProcessingIA || isRecording }"
+                        variant="secondary"
+                        class="h-28 flex flex-col gap-2 rounded-2xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all group bg-primary/5"
                         :disabled="isAdding || isProcessingIA || isRecording"
-                        title="Escanear conta (OCR/IA)"
                         @click="onCameraClick"
                     >
-                        <Loader2 v-if="isProcessingIA && !isRecording" class="h-4 w-4 animate-spin" />
-                        <Camera v-else class="h-4 w-4" />
+                        <div class="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors shadow-sm">
+                            <Loader2 v-if="isProcessingIA && !isRecording" class="h-7 w-7 animate-spin text-primary" />
+                            <Camera v-else class="h-7 w-7 text-primary" />
+                        </div>
+                        <span class="text-xs font-black uppercase tracking-widest text-primary/80">Escanear Conta</span>
                     </Button>
+
                     <Button
-                        variant="outline"
-                        size="icon"
-                        class="h-9 w-9 transition-colors"
-                        :class="{ 
-                            'bg-red-500 text-white hover:bg-red-600 animate-pulse border-red-500': isRecording,
-                            'opacity-50 pointer-events-none': isProcessingIA && !isRecording
-                        }"
+                        variant="secondary"
+                        class="h-28 flex flex-col gap-2 rounded-2xl border-2 border-transparent transition-all group bg-primary/5"
+                        :class="isRecording ? 'bg-red-500/10 border-red-500/50' : 'hover:border-primary/30 hover:bg-primary/5'"
                         :disabled="isAdding || isProcessingIA"
-                        title="Narrar por áudio"
                         @click="toggleMic"
                     >
-                        <Mic class="h-4 w-4" />
+                        <div class="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors shadow-sm"
+                             :class="{ 'bg-red-500/20 text-red-600 animate-pulse': isRecording }">
+                            <Mic class="h-7 w-7 text-primary" :class="{ 'text-red-600': isRecording }" />
+                        </div>
+                        <span class="text-xs font-black uppercase tracking-widest text-primary/80" :class="{ 'text-red-700': isRecording }">
+                            {{ isRecording ? 'Ouvindo...' : 'Narrar Itens' }}
+                        </span>
                     </Button>
                 </div>
-             </div>
-             <div class="flex gap-3">
-                <Input 
-                    ref="name-input"
-                    v-model="newItemName" 
-                    :placeholder="t('items.namePlaceholder')"
-                    class="flex-1"
-                    :disabled="isAdding || isProcessingIA || isRecording"
-                    @keyup.enter="addItem"
-                />
-                <div class="w-32">
-                    <CurrencyInput v-model="newItemAmount" @keyup.enter="addItem" :disabled="isAdding || isProcessingIA || isRecording" />
+
+                <!-- Divisor discreto para manual -->
+                <div class="flex flex-col items-center">
+                    <button 
+                        class="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors py-2 px-4 rounded-full bg-muted/50"
+                        @click="showManualEntry = !showManualEntry"
+                    >
+                        <Pencil class="w-3 h-3" />
+                        {{ showManualEntry ? 'Ocultar entrada manual' : 'Adicionar manualmente' }}
+                    </button>
                 </div>
+
+                <!-- Seção Manual: Colapsável com transição -->
+                <Transition
+                    enter-active-class="transition duration-300 ease-out"
+                    enter-from-class="transform -translate-y-4 opacity-0 max-h-0"
+                    enter-to-class="transform translate-y-0 opacity-100 max-h-[300px]"
+                    leave-active-class="transition duration-200 ease-in"
+                    leave-from-class="transform translate-y-0 opacity-100 max-h-[300px]"
+                    leave-to-class="transform -translate-y-4 opacity-0 max-h-0"
+                >
+                    <div v-if="showManualEntry" class="space-y-4 pt-2 border-t border-dashed overflow-hidden">
+                        <div class="flex gap-3">
+                            <Input 
+                                ref="name-input"
+                                v-model="newItemName" 
+                                :placeholder="t('items.namePlaceholder')"
+                                class="flex-1 bg-muted/30"
+                                :disabled="isAdding || isProcessingIA || isRecording"
+                                @keyup.enter="addItem"
+                            />
+                            <div class="w-32">
+                                <CurrencyInput v-model="newItemAmount" @keyup.enter="addItem" :disabled="isAdding || isProcessingIA || isRecording" />
+                            </div>
+                        </div>
+                        <Button variant="outline" class="w-full bg-muted/50 hover:bg-primary/10" @click="addItem" :disabled="!newItemName || newItemAmount <= 0 || isAdding || isProcessingIA || isRecording">
+                            <Loader2 v-if="isAdding" class="w-4 h-4 mr-2 animate-spin" />
+                            {{ isAdding ? t('items.adding') : t('items.add') }}
+                        </Button>
+                    </div>
+                </Transition>
              </div>
-             <Button class="w-full" @click="addItem" :disabled="!newItemName || newItemAmount <= 0 || isAdding || isProcessingIA || isRecording">
-                <Loader2 v-if="isAdding" class="w-4 h-4 mr-2 animate-spin" />
-                {{ isAdding ? t('items.adding') : t('items.add') }}
-             </Button>
         </CardContent>
      </Card>
 
